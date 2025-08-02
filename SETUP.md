@@ -201,11 +201,34 @@ See [Push Notifications Setup](NOTIFICATIONS.md) for the complete guide.
 
 ### Claude not found
 
-**macOS/Linux:**
+**macOS:**
 ```bash
 which claude
 ```
 If not found, install Claude CLI and ensure it's in PATH.
+
+**Linux:**
+```bash
+which claude
+```
+If claude is installed but not found by the scheduler:
+
+1. **Option 1: Use full path in config.json**
+   ```bash
+   # Find claude's location
+   which claude
+   # Example output: /home/youruser/.local/bin/claude
+   ```
+   Then update `config.json`:
+   ```json
+   {
+     "command": "/home/youruser/.local/bin/claude -p \"hello\""
+   }
+   ```
+
+2. **Option 2: Claude is in non-standard location**
+   - The scheduler looks in: `~/.local/bin`, `~/.npm-global/bin`, `~/.yarn/bin`, `/usr/local/bin`, `/usr/bin`
+   - If Claude is elsewhere, use the full path (Option 1)
 
 **Windows:**
 ```powershell

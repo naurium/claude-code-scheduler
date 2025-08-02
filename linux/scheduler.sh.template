@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PATH="/usr/local/bin:/usr/bin:/bin:$$PATH"
+export PATH="$$HOME/.local/bin:$$HOME/.npm-global/bin:$$HOME/.yarn/bin:/usr/local/bin:/usr/bin:/bin:$$PATH"
 export HOME="${HOME_DIR}"
 
 LOG_FILE="${LOG_DIR}/claude_scheduler.log"
