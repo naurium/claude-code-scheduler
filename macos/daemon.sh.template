@@ -17,11 +17,11 @@ IFS=',' read -ra SCHEDULE_ARRAY <<< "$$SCHEDULES"
 for schedule_time in "$${SCHEDULE_ARRAY[@]}"; do
     IFS=':' read -r sched_hour sched_minute <<< "$$schedule_time"
     if [[ "$$HOUR" == "$$sched_hour" ]] && [[ "$$MINUTE" == "$$sched_minute" ]]; then
-        export PATH="/usr/local/bin:/opt/homebrew/bin:$$PATH"
+        export PATH="$$HOME/.local/bin:$$HOME/.npm-global/bin:$$HOME/.yarn/bin:/usr/local/bin:/opt/homebrew/bin:$$PATH"
         export HOME="${HOME_DIR}"
         
         sudo -u ${USERNAME} bash << 'EOF'
-        export PATH="/usr/local/bin:/opt/homebrew/bin:$$PATH"
+        export PATH="$$HOME/.local/bin:$$HOME/.npm-global/bin:$$HOME/.yarn/bin:/usr/local/bin:/opt/homebrew/bin:$$PATH"
         LOG_FILE="${LOG_DIR}/claude_scheduler.log"
         mkdir -p "$$(dirname "$$LOG_FILE")"
         

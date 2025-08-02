@@ -10,7 +10,7 @@ Add-Content -Path $$logFile -Value "$$timestamp - Starting scheduled task"
 
 # Run claude through WSL
 try {
-    $$output = wsl ${COMMAND} 2>&1
+    $$output = wsl bash -c "export PATH='~/.local/bin:~/.npm-global/bin:~/.yarn/bin:/usr/local/bin:/usr/bin:/bin:$$PATH' && ${COMMAND}" 2>&1
     Add-Content -Path $$logFile -Value $$output
     Add-Content -Path $$logFile -Value "$$timestamp - Task completed"
     

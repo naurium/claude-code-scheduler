@@ -199,7 +199,35 @@ See [Push Notifications Setup](NOTIFICATIONS.md) for the complete guide.
 
 ## Troubleshooting
 
-### Claude not found
+### Claude command not found
+
+If the scheduler can't find claude, you have two options:
+
+**Option 1: Use full path in config.json (Recommended)**
+```bash
+# Find claude's location
+which claude
+# Example output: /home/youruser/.local/bin/claude
+```
+
+Then update `config.json`:
+```json
+{
+  "command": "/home/youruser/.local/bin/claude -p \"hello\""
+}
+```
+
+**Option 2: Check if claude is in a standard location**
+The scheduler looks in these directories:
+- `~/.local/bin` (pip/pipx installations)
+- `~/.npm-global/bin` (npm global)
+- `~/.yarn/bin` (yarn global)
+- `/usr/local/bin` (system-wide)
+- `/opt/homebrew/bin` (macOS Homebrew)
+
+If Claude is installed elsewhere, use Option 1.
+
+### Platform-specific issues
 
 **macOS:**
 ```bash
@@ -211,24 +239,7 @@ If not found, install Claude CLI and ensure it's in PATH.
 ```bash
 which claude
 ```
-If claude is installed but not found by the scheduler:
-
-1. **Option 1: Use full path in config.json**
-   ```bash
-   # Find claude's location
-   which claude
-   # Example output: /home/youruser/.local/bin/claude
-   ```
-   Then update `config.json`:
-   ```json
-   {
-     "command": "/home/youruser/.local/bin/claude -p \"hello\""
-   }
-   ```
-
-2. **Option 2: Claude is in non-standard location**
-   - The scheduler looks in: `~/.local/bin`, `~/.npm-global/bin`, `~/.yarn/bin`, `/usr/local/bin`, `/usr/bin`
-   - If Claude is elsewhere, use the full path (Option 1)
+If not found, install Claude CLI and ensure it's in PATH.
 
 **Windows:**
 ```powershell
