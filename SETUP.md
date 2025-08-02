@@ -101,7 +101,7 @@ python3 uninstall.py --remove-logs
 
 ### Linux
 - Uses systemd timers (modern distros) or cron (older systems)
-- Wake from sleep via `rtcwake` (if available)
+- Wake from sleep requires manual `rtcwake` configuration (see below)
 - Requires sudo for systemd installation
 - Logs to `~/logs/claude_scheduler.log`
 
@@ -260,8 +260,22 @@ The installer requires administrator/sudo privileges. On Unix systems, you'll be
 - Check wake schedule: `pmset -g sched`
 
 **Linux:**
+- rtcwake must be configured manually (not automatic like macOS)
 - Verify rtcwake support: `sudo rtcwake -m show`
 - May require BIOS/UEFI wake timer support
+
+To manually set a wake timer on Linux:
+```bash
+# Wake at 6:10 AM tomorrow (5 minutes before 6:15 session)
+sudo rtcwake -m no -t $(date +%s -d "tomorrow 06:10")
+
+# Or set a recurring wake with cron (add to root's crontab)
+sudo crontab -e
+# Add this line to wake at 6:10 AM daily:
+10 6 * * * /usr/sbin/rtcwake -m no -t $(date +%s -d "tomorrow 06:10")
+```
+
+Note: rtcwake only sets one wake time. For multiple daily wakes, you'd need to set the next wake after each session runs
 
 **Windows:**
 - Enable wake timers in Power Options

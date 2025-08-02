@@ -445,7 +445,7 @@ WantedBy=timers.target"""
                 subprocess.run(['sudo', 'systemctl', 'start', f'{service_name}.timer'], check=True)
                 
                 if self.config['enable_wake'] and self.config['platform_settings']['linux']['wake_method'] == 'rtcwake':
-                    print("• Setting up wake schedules with rtcwake...")
+                    print("• Note: rtcwake must be configured manually (see SETUP.md)")
                 
                 print("Linux systemd timer activated successfully!")
         else:
