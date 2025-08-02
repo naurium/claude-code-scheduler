@@ -3,31 +3,28 @@
 HOUR=$$(date +%H)
 MINUTE=$$(date +%M)
 SCHEDULES="${SCHEDULES}"
-WAKE_SCHEDULES="${WAKE_SCHEDULES}"
-
-IFS=',' read -ra WAKE_ARRAY <<< "$$WAKE_SCHEDULES"
-for wake_time in "$${WAKE_ARRAY[@]}"; do
-    IFS=':' read -r wake_hour wake_minute <<< "$$wake_time"
-    if [[ "$$HOUR:$$MINUTE" == "$$wake_hour:$$wake_minute" ]]; then
-        pmset schedule wake "$$(date -v+1d '+%m/%d/%y') $$wake_hour:$$wake_minute:00"
-    fi
-done
 
 IFS=',' read -ra SCHEDULE_ARRAY <<< "$$SCHEDULES"
 for schedule_time in "$${SCHEDULE_ARRAY[@]}"; do
     IFS=':' read -r sched_hour sched_minute <<< "$$schedule_time"
     if [[ "$$HOUR" == "$$sched_hour" ]] && [[ "$$MINUTE" == "$$sched_minute" ]]; then
-        export PATH="$$HOME/.local/bin:$$HOME/.npm-global/bin:$$HOME/.yarn/bin:/usr/local/bin:/opt/homebrew/bin:$$PATH"
         export HOME="${HOME_DIR}"
+        export PATH="$$HOME/.local/bin:$$HOME/.npm-global/bin:$$HOME/.yarn/bin:/usr/local/bin:/opt/homebrew/bin:$$PATH"
         
         sudo -u ${USERNAME} bash << 'EOF'
+        export HOME="${HOME_DIR}"
         export PATH="$$HOME/.local/bin:$$HOME/.npm-global/bin:$$HOME/.yarn/bin:/usr/local/bin:/opt/homebrew/bin:$$PATH"
         LOG_FILE="${LOG_DIR}/claude_scheduler.log"
         mkdir -p "$$(dirname "$$LOG_FILE")"
         
         echo "$$(date '+%Y-%m-%d %H:%M:%S') - Starting scheduled task" >> "$$LOG_FILE"
         
-        if command -v claude &> /dev/null; then
+        # Extract the actual command (first word, might be full path)
+        FULL_COMMAND="${COMMAND}"
+        CMD_TO_CHECK=$${FULL_COMMAND%% *}
+        
+        # Check if the command exists (works for both 'claude' and '/path/to/claude')
+        if command -v "$$CMD_TO_CHECK" &> /dev/null || [[ -x "$$CMD_TO_CHECK" ]]; then
             ${COMMAND} >> "$$LOG_FILE" 2>&1
             echo "$$(date '+%Y-%m-%d %H:%M:%S') - Task completed" >> "$$LOG_FILE"
             
@@ -37,11 +34,12 @@ for schedule_time in "$${SCHEDULE_ARRAY[@]}"; do
                      ntfy.sh/${NTFY_TOPIC} >> "$$LOG_FILE" 2>&1
             fi
         else
-            echo "$$(date '+%Y-%m-%d %H:%M:%S') - ERROR: claude command not found" >> "$$LOG_FILE"
+            echo "$$(date '+%Y-%m-%d %H:%M:%S') - ERROR: Command not found or not executable: $$CMD_TO_CHECK" >> "$$LOG_FILE"
+            echo "Full command was: ${COMMAND}" >> "$$LOG_FILE"
             
             # Send error notification if configured
             if [[ -n "${NTFY_TOPIC}" ]]; then
-                curl -s -d "⚠️ Claude scheduler failed - claude command not found" \
+                curl -s -d "⚠️ Claude scheduler failed - command not found" \
                      -H "Priority: high" \
                      ntfy.sh/${NTFY_TOPIC} >> "$$LOG_FILE" 2>&1
             fi

@@ -201,9 +201,8 @@ See [Push Notifications Setup](NOTIFICATIONS.md) for the complete guide.
 
 ### Claude command not found
 
-If the scheduler can't find claude, you have two options:
+If the scheduler can't find claude, use the full path in config.json:
 
-**Option 1: Use full path in config.json (Recommended)**
 ```bash
 # Find claude's location
 which claude
@@ -217,15 +216,14 @@ Then update `config.json`:
 }
 ```
 
-**Option 2: Check if claude is in a standard location**
-The scheduler looks in these directories:
+The scheduler automatically searches these common directories:
 - `~/.local/bin` (pip/pipx installations)
 - `~/.npm-global/bin` (npm global)
 - `~/.yarn/bin` (yarn global)
 - `/usr/local/bin` (system-wide)
 - `/opt/homebrew/bin` (macOS Homebrew)
 
-If Claude is installed elsewhere, use Option 1.
+If Claude is installed elsewhere, you must use the full path.
 
 ### Platform-specific issues
 

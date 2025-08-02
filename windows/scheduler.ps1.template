@@ -9,10 +9,35 @@ $$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 Add-Content -Path $$logFile -Value "$$timestamp - Starting scheduled task"
 
 # Run claude through WSL
+$$fullCommand = "${COMMAND}"
+Add-Content -Path $$logFile -Value "Running command: $$fullCommand"
+
 try {
-    $$output = wsl bash -c "export PATH='~/.local/bin:~/.npm-global/bin:~/.yarn/bin:/usr/local/bin:/usr/bin:/bin:$$PATH' && ${COMMAND}" 2>&1
+    # Extract command for better error reporting
+    $$cmdParts = $$fullCommand -split ' ', 2
+    $$cmdToCheck = $$cmdParts[0]
+    
+    # Run through WSL with expanded PATH and command checking
+    $$bashScript = @"
+export PATH='~/.local/bin:~/.npm-global/bin:~/.yarn/bin:/usr/local/bin:/usr/bin:/bin:$$PATH'
+CMD_TO_CHECK='$$cmdToCheck'
+if command -v \`$$CMD_TO_CHECK &> /dev/null || [[ -x \`$$CMD_TO_CHECK ]]; then
+    ${COMMAND}
+else
+    echo "ERROR: Command not found or not executable: \`$$CMD_TO_CHECK"
+    echo "Full command was: ${COMMAND}"
+    exit 1
+fi
+"@
+    
+    $$output = wsl bash -c $$bashScript 2>&1
     Add-Content -Path $$logFile -Value $$output
-    Add-Content -Path $$logFile -Value "$$timestamp - Task completed"
+    
+    if ($$LASTEXITCODE -eq 0) {
+        Add-Content -Path $$logFile -Value "$$timestamp - Task completed"
+    } else {
+        throw "Command failed with exit code $$LASTEXITCODE"
+    }
     
     # Send success notification if configured
     $$ntfyTopic = "${NTFY_TOPIC}"

@@ -18,8 +18,7 @@
       "wake_method": "rtcwake"
     },
     "macos": {
-      "daemon_label": "com.claude.scheduler",
-      "username": "naurium"
+      "daemon_label": "com.claude.scheduler"
     }
   }
 }

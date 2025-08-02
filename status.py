@@ -223,7 +223,16 @@ class ClaudeSchedulerStatus:
         print("\n=== Claude CLI Check ===")
         
         if self.platform == 'windows':
-            # Windows requires WSL
+            # Windows requires WSL - check for WSL first
+            import shutil
+            wsl_available = shutil.which('wsl')
+            
+            if not wsl_available:
+                print(f"✗ WSL not found")
+                print(f"  Please install WSL and claude within it")
+                return
+            
+            # WSL is available, now check for claude inside WSL
             try:
                 result = subprocess.run(['wsl', 'claude', '--version'], 
                                       capture_output=True, text=True)
@@ -235,9 +244,9 @@ class ClaudeSchedulerStatus:
                 else:
                     print(f"✗ Claude CLI not found in WSL")
                     print(f"  Please ensure claude is installed inside WSL")
-            except FileNotFoundError:
-                print(f"✗ WSL not found")
-                print(f"  Please install WSL and claude within it")
+            except Exception as e:
+                print(f"✗ Error checking claude in WSL: {e}")
+                print(f"  Please ensure claude is installed inside WSL")
         else:
             # macOS and Linux
             try:

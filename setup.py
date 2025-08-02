@@ -50,6 +50,9 @@ class ClaudeSchedulerSetup:
         if self.platform == 'darwin':
             self.platform = 'macos'
         
+        # Validate command to prevent injection attacks
+        self.validate_command(config)
+        
         # Detect configuration mode
         if 'schedule' in config:
             # Manual mode - user has specified exact times
@@ -67,6 +70,51 @@ class ClaudeSchedulerSetup:
             sys.exit(1)
         
         return config
+    
+    def validate_command(self, config):
+        """Validate command to prevent injection attacks"""
+        command = config.get('command', '')
+        
+        # Extract the actual command (first word)
+        cmd_parts = command.split()
+        if not cmd_parts:
+            print("Error: No command specified in config")
+            sys.exit(1)
+        
+        cmd = cmd_parts[0]
+        
+        # Allow full paths to claude executable
+        if '/' in cmd or '\\' in cmd:
+            # It's a path - just ensure it contains 'claude' somewhere
+            if 'claude' not in cmd.lower():
+                print(f"Error: Command path '{cmd}' doesn't appear to be a claude executable")
+                print("For security, only 'claude' commands are allowed")
+                sys.exit(1)
+        else:
+            # It's a command name - must be exactly 'claude'
+            if cmd != 'claude':
+                print(f"Error: Command '{cmd}' is not allowed")
+                print("For security, only 'claude' commands are allowed")
+                sys.exit(1)
+        
+        # Also validate Windows command if present
+        if self.platform == 'windows' and 'platform_settings' in config:
+            win_cmd = config.get('platform_settings', {}).get('windows', {}).get('command', '')
+            if win_cmd and win_cmd != command:
+                # Windows has a different command, validate it too
+                win_cmd_parts = win_cmd.split()
+                if win_cmd_parts:
+                    win_cmd_name = win_cmd_parts[0]
+                    if '/' in win_cmd_name or '\\' in win_cmd_name:
+                        if 'claude' not in win_cmd_name.lower():
+                            print(f"Error: Windows command path '{win_cmd_name}' doesn't appear to be a claude executable")
+                            sys.exit(1)
+                    elif win_cmd_name != 'claude':
+                        print(f"Error: Windows command '{win_cmd_name}' is not allowed")
+                        sys.exit(1)
+        
+        if self.verbose:
+            print(f"Command validation passed: {cmd}")
     
     def generate_schedule_times(self, config):
         """Generate 4 schedule times at 5-hour intervals from start_time"""
@@ -134,6 +182,14 @@ class ClaudeSchedulerSetup:
             scripts_dir.mkdir(exist_ok=True)
         print(f"Scripts directory: {scripts_dir}")
         return scripts_dir
+    
+    def create_logs_directory(self):
+        logs_dir = self.home_dir / 'logs'
+        if not self.dry_run:
+            logs_dir.mkdir(exist_ok=True)
+            if self.verbose:
+                print(f"Logs directory created: {logs_dir}")
+        return logs_dir
     
     def generate_from_template(self, template_path, output_path, substitutions):
         if self.verbose:
@@ -218,6 +274,7 @@ class ClaudeSchedulerSetup:
         print("\n=== Registering macOS scheduler ===")
         
         scripts_dir = self.create_scripts_directory()
+        self.create_logs_directory()
         platform_dir = self.script_dir / 'macos'
         
         username = self.config['platform_settings']['macos'].get('username', self.username)
@@ -246,7 +303,6 @@ class ClaudeSchedulerSetup:
             'HOME_DIR': str(self.home_dir),
             'COMMAND': self.config['command'],
             'SCHEDULES': ','.join(schedules),
-            'WAKE_SCHEDULES': ','.join(wake_schedules),
             'DAEMON_LABEL': daemon_label,
             'LOG_DIR': str(self.home_dir / 'logs'),
             'SCRIPT_PATH': str(scripts_dir / 'claude_daemon.sh'),
@@ -326,6 +382,7 @@ WantedBy=timers.target"""
         print("\n=== Registering Linux scheduler ===")
         
         scripts_dir = self.create_scripts_directory()
+        self.create_logs_directory()
         platform_dir = self.script_dir / 'linux'
         
         service_name = self.config['platform_settings']['linux']['service_name']
