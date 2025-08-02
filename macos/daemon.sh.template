@@ -1,0 +1,42 @@
+#!/bin/bash
+
+HOUR=$$(date +%H)
+MINUTE=$$(date +%M)
+SCHEDULES="${SCHEDULES}"
+WAKE_SCHEDULES="${WAKE_SCHEDULES}"
+
+IFS=',' read -ra WAKE_ARRAY <<< "$$WAKE_SCHEDULES"
+for wake_time in "$${WAKE_ARRAY[@]}"; do
+    IFS=':' read -r wake_hour wake_minute <<< "$$wake_time"
+    if [[ "$$HOUR:$$MINUTE" == "$$wake_hour:$$wake_minute" ]]; then
+        pmset schedule wake "$$(date -v+1d '+%m/%d/%y') $$wake_hour:$$wake_minute:00"
+    fi
+done
+
+IFS=',' read -ra SCHEDULE_ARRAY <<< "$$SCHEDULES"
+for schedule_time in "$${SCHEDULE_ARRAY[@]}"; do
+    IFS=':' read -r sched_hour sched_minute <<< "$$schedule_time"
+    if [[ "$$HOUR" == "$$sched_hour" ]] && [[ "$$MINUTE" == "$$sched_minute" ]]; then
+        export PATH="/usr/local/bin:/opt/homebrew/bin:$$PATH"
+        export HOME="${HOME_DIR}"
+        
+        sudo -u ${USERNAME} bash << 'EOF'
+        export PATH="/usr/local/bin:/opt/homebrew/bin:$$PATH"
+        LOG_FILE="${LOG_DIR}/claude_scheduler.log"
+        mkdir -p "$$(dirname "$$LOG_FILE")"
+        
+        echo "$$(date '+%Y-%m-%d %H:%M:%S') - Starting scheduled task" >> "$$LOG_FILE"
+        
+        if command -v claude &> /dev/null; then
+            ${COMMAND} >> "$$LOG_FILE" 2>&1
+            echo "$$(date '+%Y-%m-%d %H:%M:%S') - Task completed" >> "$$LOG_FILE"
+        else
+            echo "$$(date '+%Y-%m-%d %H:%M:%S') - ERROR: claude command not found" >> "$$LOG_FILE"
+        fi
+        
+        echo "---" >> "$$LOG_FILE"
+EOF
+    fi
+done
+
+echo "$$(date '+%Y-%m-%d %H:%M:%S') - Scheduler checked at $$HOUR:$$MINUTE" >> /var/log/claude-scheduler.log

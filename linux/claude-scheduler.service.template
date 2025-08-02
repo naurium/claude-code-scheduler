@@ -1,0 +1,13 @@
+[Unit]
+Description=Claude Scheduler Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=${USERNAME}
+ExecStart=${SCRIPT_PATH}
+StandardOutput=append:${LOG_DIR}/claude_scheduler.log
+StandardError=append:${LOG_DIR}/claude_scheduler_error.log
+
+[Install]
+WantedBy=multi-user.target

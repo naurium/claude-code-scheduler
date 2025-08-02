@@ -1,0 +1,21 @@
+{
+  "start_time": "06:15",
+  "wake_minutes_before": 5,
+  "command": "claude -p \"hello\"",
+  "enable_wake": true,
+  "log_retention_days": 7,
+  "platform_settings": {
+    "windows": {
+      "task_name": "ClaudeScheduler",
+      "command": "claude -p \"hello\""
+    },
+    "linux": {
+      "service_name": "claude-scheduler",
+      "wake_method": "rtcwake"
+    },
+    "macos": {
+      "daemon_label": "com.claude.scheduler",
+      "username": "naurium"
+    }
+  }
+}
