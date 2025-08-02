@@ -9,7 +9,7 @@ You know that annoying 5-hour session limit? Where you have to plan your entire 
 
 **Yeah, we fixed that.**
 
-This tiny scheduler keeps Claude ready 24/7. Install once, forget forever. Code whenever YOU want - not when your session window allows.
+This tiny scheduler keeps Claude ready all day. Install once, forget forever. Code whenever YOU want - not when your session window allows.
 
 ## Life, Upgraded
 
@@ -24,6 +24,8 @@ This tiny scheduler keeps Claude ready 24/7. Install once, forget forever. Code 
 ## How It Actually Works
 
 Every 5 hours, it runs a simple command to refresh your Claude session. That's it.
+
+**Same times every day** - Your sessions start and end at consistent times, so you can plan around them if needed. Or just ignore them completely.
 
 The result? **Continuous 24-hour coverage**. Your computer even wakes itself up to run the commands (you won't notice).
 
@@ -41,12 +43,18 @@ cd claude-code-scheduler
 python3 setup.py
 ```
 
-**That's it.** Claude is now available 24/7. Go live your life.
+**That's it.** Claude is now available all day. Go live your life.
 
 ### Check it's working
 ```bash
 python3 status.py --logs
 ```
+
+### Want notifications?
+```bash
+python3 setup.py --add-notifications
+```
+See [Push Notifications Setup](NOTIFICATIONS.md) for details.
 
 ### Remove it
 ```bash
@@ -73,11 +81,14 @@ python3 uninstall.py
 
 **The Problem:** Claude has 5-hour session windows. Miss your window, wait for the next one.
 
-**Our Solution:** Run a command every 5 hours. Sessions stay fresh. You stay flexible.
+**Our Solution:** Run a command every 5 hours at the same times daily. Sessions stay fresh. You stay flexible.
 
 **How:** System schedulers (launchd/systemd/Task Scheduler) + wake timers = 24/7 coverage
 
 **The Math:** 4 commands at 5-hour intervals = continuous availability. Your machine wakes 5min early to ensure everything runs.
+
+**Example Schedule:** Start at 6:15 AM → Sessions at 6:15, 11:15, 4:15 PM, 9:15 PM daily  
+**Why It Works:** Same schedule every day means predictable availability + no planning needed
 
 ## Supported Platforms
 

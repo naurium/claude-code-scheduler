@@ -11,9 +11,22 @@ echo "$$(date '+%Y-%m-%d %H:%M:%S') - Starting scheduled task" >> "$$LOG_FILE"
 if command -v claude &> /dev/null; then
     ${COMMAND} >> "$$LOG_FILE" 2>&1
     echo "$$(date '+%Y-%m-%d %H:%M:%S') - Task completed" >> "$$LOG_FILE"
+    
+    # Send success notification if configured
+    if [[ -n "${NTFY_TOPIC}" ]]; then
+        curl -s -d "✅ Claude session refreshed at $$(date '+%H:%M')" \
+             ntfy.sh/${NTFY_TOPIC} >> "$$LOG_FILE" 2>&1
+    fi
 else
     echo "$$(date '+%Y-%m-%d %H:%M:%S') - ERROR: claude command not found" >> "$$LOG_FILE"
     echo "PATH=$$PATH" >> "$$LOG_FILE"
+    
+    # Send error notification if configured
+    if [[ -n "${NTFY_TOPIC}" ]]; then
+        curl -s -d "⚠️ Claude scheduler failed - claude command not found" \
+             -H "Priority: high" \
+             ntfy.sh/${NTFY_TOPIC} >> "$$LOG_FILE" 2>&1
+    fi
 fi
 
 echo "---" >> "$$LOG_FILE"

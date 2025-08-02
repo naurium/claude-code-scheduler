@@ -13,15 +13,26 @@ from string import Template
 import time
 
 class ClaudeSchedulerSetup:
-    def __init__(self, config_path='config.json', dry_run=False, verbose=False):
+    def __init__(self, config_path='config.json', dry_run=False, verbose=False, 
+                 notification_topic=None, remove_notifications=False):
         self.dry_run = dry_run
         self.verbose = verbose
+        self.notification_topic = notification_topic
+        self.remove_notifications = remove_notifications
         self.platform = platform.system().lower()
         self.username = getpass.getuser()
         self.home_dir = Path.home()
         self.script_dir = Path(__file__).parent.absolute()
         self.config_path = self.script_dir / config_path
         self.config = self.load_config()
+        
+        # Handle notification settings
+        if self.notification_topic:
+            self.config['notification_topic'] = self.notification_topic
+            print(f"Notifications will be sent to: ntfy.sh/{self.notification_topic}")
+        elif self.remove_notifications:
+            self.config.pop('notification_topic', None)
+            print("Notifications will be disabled")
         
         if self.verbose:
             print(f"Platform detected: {self.platform}")
@@ -238,7 +249,8 @@ class ClaudeSchedulerSetup:
             'WAKE_SCHEDULES': ','.join(wake_schedules),
             'DAEMON_LABEL': daemon_label,
             'LOG_DIR': str(self.home_dir / 'logs'),
-            'SCRIPT_PATH': str(scripts_dir / 'claude_daemon.sh')
+            'SCRIPT_PATH': str(scripts_dir / 'claude_daemon.sh'),
+            'NTFY_TOPIC': self.config.get('notification_topic', '')
         }
         
         # Generate daemon script
@@ -329,7 +341,8 @@ WantedBy=timers.target"""
             'SCHEDULES': ' '.join(schedules),
             'SERVICE_NAME': service_name,
             'LOG_DIR': str(self.home_dir / 'logs'),
-            'SCRIPT_PATH': str(scripts_dir / 'claude_scheduler.sh')
+            'SCRIPT_PATH': str(scripts_dir / 'claude_scheduler.sh'),
+            'NTFY_TOPIC': self.config.get('notification_topic', '')
         }
         
         self.generate_from_template(
@@ -479,7 +492,8 @@ WantedBy=timers.target"""
             'TASK_NAME': task_name,
             'LOG_DIR': str(self.home_dir / 'logs'),
             'SCRIPT_PATH': str(scripts_dir / 'claude_scheduler.ps1'),
-            'ENABLE_WAKE': str(self.config['enable_wake']).lower()
+            'ENABLE_WAKE': str(self.config['enable_wake']).lower(),
+            'NTFY_TOPIC': self.config.get('notification_topic', '')
         }
         
         self.generate_from_template(
@@ -517,6 +531,14 @@ WantedBy=timers.target"""
         else:
             print("Dry run - no actual registration performed")
     
+    def save_config(self):
+        """Save the updated config file with notification settings"""
+        if not self.dry_run:
+            with open(self.config_path, 'w') as f:
+                json.dump(self.config, f, indent=2)
+            if self.verbose:
+                print(f"Configuration saved to {self.config_path}")
+    
     def run(self):
         print("Claude Scheduler Setup")
         print("=" * 50)
@@ -526,6 +548,10 @@ WantedBy=timers.target"""
         
         if not self.check_prerequisites():
             sys.exit(1)
+        
+        # Save updated config with notification settings
+        if self.notification_topic or self.remove_notifications:
+            self.save_config()
         
         if self.platform == 'macos':
             self.register_macos()
@@ -538,19 +564,29 @@ WantedBy=timers.target"""
         print("Setup complete!")
         print(f"Run 'python status.py' to check the scheduler status")
         print(f"Run 'python uninstall.py' to remove the scheduler")
+        
+        if self.notification_topic:
+            print(f"\nNotifications enabled! Test with:")
+            print(f"  curl -d 'Test notification' ntfy.sh/{self.notification_topic}")
 
 def main():
     parser = argparse.ArgumentParser(description='Claude Scheduler Setup')
     parser.add_argument('--dry-run', action='store_true', help='Preview registration without making changes')
     parser.add_argument('--verbose', action='store_true', help='Show detailed output')
     parser.add_argument('--config', default='config.json', help='Path to configuration file')
+    parser.add_argument('--add-notifications', dest='notification_topic', 
+                       help='Enable push notifications with specified ntfy.sh topic')
+    parser.add_argument('--remove-notifications', action='store_true',
+                       help='Remove push notifications from scheduler')
     
     args = parser.parse_args()
     
     setup = ClaudeSchedulerSetup(
         config_path=args.config,
         dry_run=args.dry_run,
-        verbose=args.verbose
+        verbose=args.verbose,
+        notification_topic=args.notification_topic,
+        remove_notifications=args.remove_notifications
     )
     
     try:

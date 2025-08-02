@@ -13,10 +13,34 @@ try {
     $$output = wsl ${COMMAND} 2>&1
     Add-Content -Path $$logFile -Value $$output
     Add-Content -Path $$logFile -Value "$$timestamp - Task completed"
+    
+    # Send success notification if configured
+    $$ntfyTopic = "${NTFY_TOPIC}"
+    if ($$ntfyTopic) {
+        $$time = Get-Date -Format "HH:mm"
+        try {
+            Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
+                -Body "✅ Claude session refreshed at $$time" | Out-Null
+        } catch {
+            Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
+        }
+    }
 } catch {
     Add-Content -Path $$logFile -Value "$$timestamp - ERROR: Failed to run claude through WSL"
     Add-Content -Path $$logFile -Value "$$timestamp - Make sure WSL is installed and claude is configured in WSL"
     Add-Content -Path $$logFile -Value "Error details: $$_"
+    
+    # Send error notification if configured
+    $$ntfyTopic = "${NTFY_TOPIC}"
+    if ($$ntfyTopic) {
+        try {
+            Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
+                -Body "⚠️ Claude scheduler failed - check logs" `
+                -Headers @{"Priority"="high"} | Out-Null
+        } catch {
+            Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
+        }
+    }
 }
 
 Add-Content -Path $$logFile -Value "---"

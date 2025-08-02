@@ -188,6 +188,15 @@ Use a different configuration file:
 python3 setup.py --config my-config.json
 ```
 
+### Push Notifications
+Get notified when Claude runs or if something breaks:
+```bash
+python3 setup.py --add-notifications YOUR_TOPIC_NAME
+```
+
+This adds push notifications to your phone/desktop using the free ntfy.sh service. 
+See [Push Notifications Setup](NOTIFICATIONS.md) for the complete guide.
+
 ## Troubleshooting
 
 ### Claude not found
