@@ -34,20 +34,43 @@ fi
     Add-Content -Path $$logFile -Value $$output
     
     if ($$LASTEXITCODE -eq 0) {
-        Add-Content -Path $$logFile -Value "$$timestamp - Task completed"
+        Add-Content -Path $$logFile -Value "$$timestamp - Task completed successfully"
+        
+        # Send success notification if configured
+        $$ntfyTopic = "${NTFY_TOPIC}"
+        if ($$ntfyTopic) {
+            $$time = Get-Date -Format "HH:mm"
+            try {
+                Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
+                    -Body "✅ Claude session refreshed at $$time" | Out-Null
+            } catch {
+                Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
+            }
+        }
     } else {
-        throw "Command failed with exit code $$LASTEXITCODE"
-    }
-    
-    # Send success notification if configured
-    $$ntfyTopic = "${NTFY_TOPIC}"
-    if ($$ntfyTopic) {
-        $$time = Get-Date -Format "HH:mm"
-        try {
-            Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
-                -Body "✅ Claude session refreshed at $$time" | Out-Null
-        } catch {
-            Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
+        Add-Content -Path $$logFile -Value "$$timestamp - Task failed with exit code $$LASTEXITCODE"
+        
+        # Send error notification if configured
+        $$ntfyTopic = "${NTFY_TOPIC}"
+        if ($$ntfyTopic) {
+            # Check for specific error types
+            if ($$output -match "Invalid API key") {
+                try {
+                    Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
+                        -Body "🔑 Claude API error - please run /login" `
+                        -Headers @{"Priority"="high"} | Out-Null
+                } catch {
+                    Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
+                }
+            } else {
+                try {
+                    Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
+                        -Body "⚠️ Claude scheduler failed - check logs (exit code: $$LASTEXITCODE)" `
+                        -Headers @{"Priority"="high"} | Out-Null
+                } catch {
+                    Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
+                }
+            }
         }
     }
 } catch {
@@ -60,7 +83,7 @@ fi
     if ($$ntfyTopic) {
         try {
             Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
-                -Body "⚠️ Claude scheduler failed - check logs" `
+                -Body "⚠️ Claude scheduler failed - WSL error" `
                 -Headers @{"Priority"="high"} | Out-Null
         } catch {
             Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
