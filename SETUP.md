@@ -24,7 +24,7 @@ The scheduler supports two configuration modes (it will create config.json autom
 After running setup.py, edit `config.json` with just a start time:
 ```json
 {
-  "start_time": "06:15",        // Your preferred first session time
+  "start_time": "06:15",        // Your preferred first session time (24-hour format)
   "wake_minutes_before": 5,     // Wake computer 5 min early  
   "command": "claude -p \"hello\"",
   "enable_wake": true
@@ -59,6 +59,8 @@ For custom schedules, use the `schedule` array instead:
 1. Copy `config.manual.example.json` to `config.json`
 2. Edit the times to match your needs
 3. Run `python3 setup.py`
+
+**Important:** Do NOT use both `start_time` and `schedule` in the same config!
 
 ### 3. Register Scheduler
 ```bash
@@ -112,7 +114,7 @@ python3 uninstall.py --remove-logs
 
 ### Linux
 - Uses systemd timers (modern distros) or cron (older systems)
-- Wake from sleep requires manual `rtcwake` configuration (see below)
+- Wake from sleep requires manual `rtcwake` configuration (see Troubleshooting section)
 - Requires sudo for systemd installation
 - Logs to `~/logs/claude_scheduler.log`
 
@@ -130,38 +132,10 @@ python3 uninstall.py --remove-logs
 2. Install Claude inside WSL environment
 3. Test that `wsl claude -p "hello"` works from PowerShell
 
-## Configuration Options
-
-### Mode Selection
-The scheduler supports two modes - choose ONE:
-
-#### Simple Mode Configuration
-Use `start_time` for automatic 5-hour intervals:
-```json
-{
-  "start_time": "HH:MM",          // 24-hour format for first session
-  "wake_minutes_before": 5,       // Minutes to wake before each task
-  "command": "claude -p \"hello\"",  // Command to run
-  "enable_wake": true              // Enable wake from sleep
-}
-```
-
-#### Manual Mode Configuration  
-Use `schedule` array for custom times:
-```json
-{
-  "schedule": [                   // Array of custom session times
-    {"time": "HH:MM", "wake_minutes_before": N},
-    {"time": "HH:MM", "wake_minutes_before": N}
-  ],
-  "command": "claude -p \"hello\"",  // Command to run
-  "enable_wake": true              // Enable wake from sleep
-}
-```
-
-**Important:** Do NOT use both `start_time` and `schedule` in the same config!
+## Advanced Configuration
 
 ### Platform Settings
+You can customize platform-specific settings in config.json:
 ```json
 "platform_settings": {
   "windows": {
@@ -212,15 +186,17 @@ See [Push Notifications Setup](NOTIFICATIONS.md) for the complete guide.
 
 ### Claude command not found
 
-If the scheduler can't find claude, use the full path in config.json:
+If the scheduler can't find claude, first locate it:
 
 ```bash
-# Find claude's location
+# macOS/Linux
 which claude
-# Example output: /home/youruser/.local/bin/claude
+
+# Windows (in WSL)
+wsl which claude
 ```
 
-Then update `config.json`:
+Then update `config.json` with the full path:
 ```json
 {
   "command": "/home/youruser/.local/bin/claude -p \"hello\""
@@ -235,31 +211,6 @@ The scheduler automatically searches these common directories:
 - `/opt/homebrew/bin` (macOS Homebrew)
 
 If Claude is installed elsewhere, you must use the full path.
-
-### Platform-specific issues
-
-**macOS:**
-```bash
-which claude
-```
-If not found, install Claude CLI and ensure it's in PATH.
-
-**Linux:**
-```bash
-which claude
-```
-If not found, install Claude CLI and ensure it's in PATH.
-
-**Windows:**
-```powershell
-# Test WSL is installed
-wsl --version
-
-# Test claude works in WSL
-wsl claude --version
-```
-If WSL not found, install it: `wsl --install`
-If claude not found in WSL, install it inside WSL environment.
 
 ### Permission denied
 The installer requires administrator/sudo privileges. On Unix systems, you'll be prompted for your password.
@@ -293,7 +244,7 @@ sudo crontab -e
 10 6 * * * /usr/sbin/rtcwake -m no -t $(date +%s -d "tomorrow 06:10")
 ```
 
-Note: rtcwake only sets one wake time. For multiple daily wakes, you'd need to set the next wake after each session runs
+Note: rtcwake only sets one wake time. For multiple daily wakes, you'd need to set the next wake after each session runs.
 
 **Windows:**
 - Enable wake timers in Power Options
@@ -304,7 +255,7 @@ Note: rtcwake only sets one wake time. For multiple daily wakes, you'd need to s
 **macOS:**
 ```bash
 tail -f ~/Library/Logs/ClaudeScheduler/scheduler.log
-# Or check all logs in the directory:
+# Or check all logs:
 ls -la ~/Library/Logs/ClaudeScheduler/
 ```
 
@@ -324,10 +275,9 @@ Test the scheduler script directly:
 
 **macOS:**
 ```bash
-# If already installed:
-~/Library/Application\ Support/ClaudeScheduler/claude_daemon.sh
-# Or use the test command:
 python3 status.py --test
+# Or run directly if installed:
+~/Library/Application\ Support/ClaudeScheduler/claude_daemon.sh
 ```
 
 **Linux:**
