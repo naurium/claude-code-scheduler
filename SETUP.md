@@ -18,10 +18,10 @@ cd claude-code-scheduler
 
 ### 2. Configure (Choose Your Mode)
 
-The scheduler supports two configuration modes:
+The scheduler supports two configuration modes (it will create config.json automatically on first run):
 
 #### Simple Mode (Default - Recommended for Most Users)
-Edit `config.json` with just a start time:
+After running setup.py, edit `config.json` with just a start time:
 ```json
 {
   "start_time": "06:15",        // Your preferred first session time

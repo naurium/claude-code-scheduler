@@ -1,10 +1,6 @@
 {
-  "schedule": [
-    {"time": "06:15", "wake_minutes_before": 5},
-    {"time": "11:15", "wake_minutes_before": 5},
-    {"time": "16:15", "wake_minutes_before": 5},
-    {"time": "21:15", "wake_minutes_before": 5}
-  ],
+  "start_time": "06:15",
+  "wake_minutes_before": 5,
   "command": "claude -p \"hello\"",
   "enable_wake": true,
   "log_retention_days": 7,

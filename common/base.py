@@ -42,12 +42,51 @@ class BaseSchedulerSetup(ABC):
             print(f"Home directory: {self.home_dir}")
     
     def load_config(self):
+        first_time_setup = False
         if not self.config_path.exists():
-            print(f"Error: Configuration file {self.config_path} not found")
-            sys.exit(1)
+            # Try to copy from config.example.json
+            example_path = self.script_dir / 'config.example.json'
+            if example_path.exists():
+                print("No config.json found. Let's set up your schedule!")
+                shutil.copy(example_path, self.config_path)
+                first_time_setup = True
+            else:
+                print(f"Error: Neither {self.config_path} nor {example_path} found")
+                sys.exit(1)
         
         with open(self.config_path, 'r') as f:
             config = json.load(f)
+        
+        # If first time setup and in simple mode, prompt for start time
+        if first_time_setup and 'start_time' in config and 'schedule' not in config:
+            if not self.dry_run:  # Only prompt in real runs
+                print("\nWhat time would you like your first Claude session?")
+                while True:
+                    user_time = input("Enter time in 24-hour format (e.g., 06:15): ").strip()
+                    # Basic validation
+                    if ':' in user_time and len(user_time.split(':')) == 2:
+                        try:
+                            hours, minutes = user_time.split(':')
+                            h = int(hours)
+                            m = int(minutes)
+                            if 0 <= h <= 23 and 0 <= m <= 59:
+                                config['start_time'] = user_time
+                                # Generate and show the 4 sessions
+                                schedule = self.generate_schedule_times(config)
+                                print(f"\nThis will create 4 daily sessions at:")
+                                for sched in schedule:
+                                    print(f"  - {sched['time']}")
+                                print()
+                                # Save the updated config
+                                with open(self.config_path, 'w') as f:
+                                    json.dump(config, f, indent=2)
+                                print(f"Config saved to {self.config_path}\n")
+                                break
+                        except ValueError:
+                            pass
+                    print("Invalid time format. Please use HH:MM (e.g., 09:00)")
+            else:
+                print(f"Created {self.config_path} with default start time {config['start_time']}")
         
         if self.platform == 'darwin':
             self.platform = 'macos'
