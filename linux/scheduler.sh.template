@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Systemd/cron handles the scheduling - we just run when called
 export HOME="${HOME_DIR}"
 export PATH="$$HOME/.local/bin:$$HOME/.npm-global/bin:$$HOME/.yarn/bin:/usr/local/bin:/usr/bin:/bin:$$PATH"
 

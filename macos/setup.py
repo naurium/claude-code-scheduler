@@ -45,22 +45,7 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             <integer>{minute}</integer>
         </dict>""")
             
-            # Add wake schedule entries if enabled
-            if self.config.get('enable_wake', False) and sched.get('wake_minutes_before', 0) > 0:
-                wake_minute = minute - sched['wake_minutes_before']
-                wake_hour = hour
-                if wake_minute < 0:
-                    wake_minute += 60
-                    wake_hour -= 1
-                    if wake_hour < 0:
-                        wake_hour += 24
-                
-                schedule_entries.append(f"""        <dict>
-            <key>Hour</key>
-            <integer>{wake_hour}</integer>
-            <key>Minute</key>
-            <integer>{wake_minute}</integer>
-        </dict>""")
+            # Wake schedules are handled by pmset, not in the plist
         
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -76,7 +61,7 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
     </array>
     
     <key>RunAtLoad</key>
-    <true/>
+    <false/>
     
     <key>StartCalendarInterval</key>
     <array>
@@ -109,13 +94,11 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
         scripts_dir = app_support_dir
         platform_dir = self.script_dir / 'macos'
         
-        schedules = []
         wake_schedules = []
         for sched in self.config['schedule']:
             time_parts = sched['time'].split(':')
             hour = int(time_parts[0])
             minute = int(time_parts[1])
-            schedules.append(f"{hour:02d}:{minute:02d}")
             
             if self.config.get('enable_wake', False) and sched.get('wake_minutes_before', 0) > 0:
                 wake_minute = minute - sched['wake_minutes_before']
@@ -131,7 +114,6 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             'USERNAME': self.username,
             'HOME_DIR': str(self.home_dir),
             'COMMAND': self.config['command'],
-            'SCHEDULES': ','.join(schedules),
             'DAEMON_LABEL': self.daemon_label,
             'LOG_DIR': str(log_dir),
             'SCRIPT_PATH': str(scripts_dir / 'claude_daemon.sh'),
