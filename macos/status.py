@@ -60,19 +60,14 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("=" * 50)
         print("\n=== Testing macOS Scheduler Script ===\n")
         
-        # Check for script in new location
+        # Check for script in Application Support
         app_support_dir = Path.home() / 'Library' / 'Application Support' / 'ClaudeScheduler'
         script_path = app_support_dir / 'claude_daemon.sh'
         
-        # Fall back to old location if not found
         if not script_path.exists():
-            script_path = self.script_dir / 'scripts' / 'claude_daemon.sh'
-            if not script_path.exists():
-                print(f"✗ Script not found in:")
-                print(f"  - {app_support_dir / 'claude_daemon.sh'}")
-                print(f"  - {self.script_dir / 'scripts' / 'claude_daemon.sh'}")
-                print("\nSolution: Run 'python3 setup.py' to generate the script")
-                return
+            print(f"✗ Script not found at: {script_path}")
+            print("\nSolution: Run 'python3 setup.py' to generate the script")
+            return
         
         print(f"✓ Script found: {script_path}")
         
@@ -165,11 +160,7 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
             Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.out',
             Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.err',
             Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'claude_scheduler.log',
-            # Fall back to old locations
-            self.home_dir / 'logs' / 'claude_scheduler.log',
-            Path('/var/log/claude-scheduler.log'),
-            Path('/var/log/claude-scheduler.out'),
-            Path('/var/log/claude-scheduler.err')
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'system.log'
         ]
         
         found_logs = False
