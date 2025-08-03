@@ -81,6 +81,16 @@ View status with recent logs:
 python3 status.py --logs
 ```
 
+Test the scheduler script to diagnose issues:
+```bash
+python3 status.py --test
+```
+The `--test` flag will:
+- Check if scripts exist and have proper permissions
+- Attempt to run the scheduler script
+- Show clear error messages if there are issues
+- Help identify security restrictions (like macOS Documents folder blocking)
+
 ### 5. Remove
 ```bash
 python3 uninstall.py
@@ -97,7 +107,8 @@ python3 uninstall.py --remove-logs
 - Uses LaunchDaemons for scheduling
 - Supports wake from sleep via `pmset`
 - Requires sudo for registration
-- Logs to `~/logs/claude_scheduler.log`
+- Logs to `~/Library/Logs/com.claude.scheduler/`
+- Scripts installed to `~/Library/Application Support/com.claude.scheduler/`
 
 ### Linux
 - Uses systemd timers (modern distros) or cron (older systems)
@@ -253,6 +264,13 @@ If claude not found in WSL, install it inside WSL environment.
 ### Permission denied
 The installer requires administrator/sudo privileges. On Unix systems, you'll be prompted for your password.
 
+### macOS "Operation not permitted" error
+If you see this error when the scheduler tries to run:
+- The script is likely in a protected folder (Documents, Desktop, Downloads)
+- Run `python3 setup.py` to reinstall - scripts will be copied to `~/Library/Application Support/com.claude.scheduler/`
+- This location has no security restrictions
+- Use `python3 status.py --test` to verify the fix
+
 ### Wake not working
 
 **macOS:**
@@ -283,7 +301,14 @@ Note: rtcwake only sets one wake time. For multiple daily wakes, you'd need to s
 
 ### Checking logs
 
-**macOS/Linux:**
+**macOS:**
+```bash
+tail -f ~/Library/Logs/com.claude.scheduler/scheduler.log
+# Or check all logs in the directory:
+ls -la ~/Library/Logs/com.claude.scheduler/
+```
+
+**Linux:**
 ```bash
 tail -f ~/logs/claude_scheduler.log
 ```
@@ -297,7 +322,15 @@ Get-Content "$env:USERPROFILE\logs\claude_scheduler.log" -Tail 20 -Wait
 
 Test the scheduler script directly:
 
-**macOS/Linux:**
+**macOS:**
+```bash
+# If already installed:
+~/Library/Application\ Support/com.claude.scheduler/claude_daemon.sh
+# Or use the test command:
+python3 status.py --test
+```
+
+**Linux:**
 ```bash
 ./scripts/claude_scheduler.sh
 ```
