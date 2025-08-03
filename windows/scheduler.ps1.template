@@ -20,6 +20,23 @@ try {
     # Run through WSL with expanded PATH and command checking
     $$bashScript = @"
 export PATH='~/.local/bin:~/.npm-global/bin:~/.yarn/bin:/usr/local/bin:/usr/bin:/bin:$$PATH'
+
+# Set working directory (default to home if not specified or if set to ~)
+WORKING_DIR='${WORKING_DIR_VALUE}'
+if [[ -z \`$$WORKING_DIR ]] || [[ \`$$WORKING_DIR == "~" ]]; then
+    WORKING_DIR=\`$$HOME
+else
+    # Expand tilde if present at the start of the path
+    WORKING_DIR="\`$${WORKING_DIR/#\~/$HOME}"
+fi
+
+echo "Changing to directory: \`$$WORKING_DIR"
+cd \`$$WORKING_DIR || {
+    echo "ERROR: Cannot change to directory: \`$$WORKING_DIR"
+    exit 1
+}
+echo "Current directory: \`$$(pwd)"
+
 CMD_TO_CHECK='$$cmdToCheck'
 if command -v \`$$CMD_TO_CHECK &> /dev/null || [[ -x \`$$CMD_TO_CHECK ]]; then
     ${COMMAND}

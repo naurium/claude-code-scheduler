@@ -27,6 +27,7 @@ After running setup.py, edit `config.json` with just a start time:
   "start_time": "06:15",        // Your preferred first session time (24-hour format)
   "wake_minutes_before": 5,     // Wake computer 5 min early  
   "command": "claude -p \"hello\"",
+  "working_directory": "~",     // Directory to run Claude from (~ = home)
   "enable_wake": true
 }
 ```
@@ -48,6 +49,7 @@ For custom schedules, use the `schedule` array instead:
     {"time": "18:00", "wake_minutes_before": 10},
     {"time": "23:45", "wake_minutes_before": 3}
   ],
+  "working_directory": "~",     // Directory to run Claude from
   "command": "claude -p \"hello\"",
   "enable_wake": true
 }
@@ -106,9 +108,11 @@ python3 uninstall.py --remove-logs
 ## Platform-Specific Information
 
 ### macOS
-- Uses LaunchDaemons for scheduling
+- Uses dual LaunchDaemon + LaunchAgent architecture:
+  - **LaunchDaemon**: Wake scheduling only (requires sudo)
+  - **LaunchAgent**: Claude execution with user permissions
 - Supports wake from sleep via `pmset`
-- Requires sudo for registration
+- Requires sudo only for wake daemon installation
 - Logs to `~/Library/Logs/ClaudeScheduler/`
 - Scripts installed to `~/Library/Application Support/ClaudeScheduler/`
 
@@ -183,6 +187,19 @@ This adds push notifications to your phone/desktop using the free ntfy.sh servic
 See [Push Notifications Setup](NOTIFICATIONS.md) for the complete guide.
 
 ## Troubleshooting
+
+### macOS: "Node requesting permission to access files" error
+
+This is a common issue with Claude Code (the Electron app). The scheduler now uses a dual architecture to solve this:
+- **LaunchAgent** runs Claude with your user permissions (no TCC issues)
+- **LaunchDaemon** only handles wake scheduling (requires root)
+
+If you still see permission errors:
+1. Grant Terminal.app Full Disk Access in System Preferences
+2. Make sure the scheduler installed both components:
+   ```bash
+   python3 status.py  # Should show both Wake Daemon and Claude Agent
+   ```
 
 ### Claude command not found
 

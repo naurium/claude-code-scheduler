@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Claude Executor Agent - Runs as user via LaunchAgent
+# Has user permissions for file access (no TCC issues)
+
+export HOME="${HOME_DIR}"
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/.yarn/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+
+LOG_FILE="${LOG_DIR}/claude_scheduler.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting scheduled task" >> "$LOG_FILE"
+
+# Set working directory (default to home if not specified or if set to ~)
+WORKING_DIR="${WORKING_DIR_VALUE}"
+if [[ -z "$WORKING_DIR" ]] || [[ "$WORKING_DIR" == "~" ]]; then
+    WORKING_DIR="$HOME"
+else
+    # Expand tilde if present at the start of the path
+    WORKING_DIR="${WORKING_DIR/#\~/$HOME}"
+fi
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Changing to directory: $WORKING_DIR" >> "$LOG_FILE"
+cd "$WORKING_DIR" || {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: Cannot change to directory: $WORKING_DIR" >> "$LOG_FILE"
+    exit 1
+}
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Current directory: $(pwd)" >> "$LOG_FILE"
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Running command: ${COMMAND}" >> "$LOG_FILE"
+
+# Extract the actual command (first word, might be full path)
+FULL_COMMAND="${COMMAND}"
+CMD_TO_CHECK=${FULL_COMMAND%% *}
+
+# Check if the command exists (works for both 'claude' and '/path/to/claude')
+if command -v "$CMD_TO_CHECK" &> /dev/null || [[ -x "$CMD_TO_CHECK" ]]; then
+    # Run command and capture output for error analysis
+    OUTPUT=$(${COMMAND} 2>&1)
+    EXIT_CODE=$?
+    echo "$OUTPUT" >> "$LOG_FILE"
+    
+    if [[ $EXIT_CODE -eq 0 ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Task completed successfully" >> "$LOG_FILE"
+        
+        # Send success notification if configured
+        if [[ -n "${NTFY_TOPIC}" ]]; then
+            curl -s -d "✅ Claude session refreshed at $(date '+%H:%M')" \
+                 ntfy.sh/${NTFY_TOPIC} >> "$LOG_FILE" 2>&1
+        fi
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Task failed with exit code $EXIT_CODE" >> "$LOG_FILE"
+        
+        # Send error notification if configured
+        if [[ -n "${NTFY_TOPIC}" ]]; then
+            # Check for specific error types
+            if echo "$OUTPUT" | grep -q "Invalid API key"; then
+                curl -s -d "🔑 Claude API error - please run /login" \
+                     -H "Priority: high" \
+                     ntfy.sh/${NTFY_TOPIC} >> "$LOG_FILE" 2>&1
+            else
+                curl -s -d "⚠️ Claude scheduler failed - check logs (exit code: $EXIT_CODE)" \
+                     -H "Priority: high" \
+                     ntfy.sh/${NTFY_TOPIC} >> "$LOG_FILE" 2>&1
+            fi
+        fi
+    fi
+else
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: Command not found or not executable: $CMD_TO_CHECK" >> "$LOG_FILE"
+    echo "Full command was: ${COMMAND}" >> "$LOG_FILE"
+    echo "PATH is: $PATH" >> "$LOG_FILE"
+    
+    # Send error notification if configured
+    if [[ -n "${NTFY_TOPIC}" ]]; then
+        curl -s -d "⚠️ Claude scheduler failed - command not found: $CMD_TO_CHECK" \
+             -H "Priority: high" \
+             ntfy.sh/${NTFY_TOPIC} >> "$LOG_FILE" 2>&1
+    fi
+fi
+
+echo "---" >> "$LOG_FILE"

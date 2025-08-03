@@ -16,15 +16,43 @@ class MacOSSchedulerUninstall(BaseSchedulerUninstall):
     def uninstall(self):
         print("\n=== Uninstalling macOS scheduler ===")
         
-        plist_path = f'/Library/LaunchDaemons/{self.daemon_label}.plist'
+        errors_occurred = False
         
         try:
-            print("Unloading from launchd...")
-            subprocess.run(['sudo', 'launchctl', 'unload', plist_path], 
-                          capture_output=True, text=True)
+            # 1. Unload and remove Wake Daemon (if exists)
+            wake_daemon_plist = f'/Library/LaunchDaemons/{self.daemon_label}.Wake.plist'
+            if Path(wake_daemon_plist).exists():
+                print("\nUnloading wake daemon...")
+                result = subprocess.run(['sudo', 'launchctl', 'unload', wake_daemon_plist], 
+                                      capture_output=True, text=True)
+                if result.returncode != 0 and 'No such process' not in result.stderr:
+                    print(f"  Warning: {result.stderr.strip()}")
+                
+                print("Removing wake daemon plist...")
+                subprocess.run(['sudo', 'rm', wake_daemon_plist], check=True)
+                print("  ✓ Wake daemon removed")
             
-            print("Removing LaunchDaemon plist...")
-            subprocess.run(['sudo', 'rm', plist_path], check=True)
+            # Check for old-style daemon (from previous versions)
+            old_daemon_plist = f'/Library/LaunchDaemons/{self.daemon_label}.plist'
+            if Path(old_daemon_plist).exists():
+                print("\nRemoving old-style daemon...")
+                subprocess.run(['sudo', 'launchctl', 'unload', old_daemon_plist], 
+                             capture_output=True, text=True)
+                subprocess.run(['sudo', 'rm', old_daemon_plist], check=True)
+                print("  ✓ Old daemon removed")
+            
+            # 2. Unload and remove Claude Agent
+            agent_plist = Path.home() / 'Library' / 'LaunchAgents' / f'{self.daemon_label}.Agent.plist'
+            if agent_plist.exists():
+                print("\nUnloading Claude agent...")
+                result = subprocess.run(['launchctl', 'unload', str(agent_plist)], 
+                                      capture_output=True, text=True)
+                if result.returncode != 0 and 'No such process' not in result.stderr:
+                    print(f"  Warning: {result.stderr.strip()}")
+                
+                print("Removing agent plist...")
+                agent_plist.unlink()
+                print("  ✓ Claude agent removed")
             
             print("Cancelling wake schedules...")
             subprocess.run(['sudo', 'pmset', 'repeat', 'cancel'], 
@@ -63,7 +91,10 @@ class MacOSSchedulerUninstall(BaseSchedulerUninstall):
                         except:
                             pass
             
-            print("macOS scheduler uninstalled successfully!")
+            if not errors_occurred:
+                print("\nmacOS scheduler uninstalled successfully!")
+            else:
+                print("\nmacOS scheduler uninstalled with some warnings.")
             return True
             
         except subprocess.CalledProcessError as e:

@@ -19,24 +19,50 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("\n=== macOS Scheduler Status ===")
         
         try:
-            result = subprocess.run(['sudo', 'launchctl', 'list'], 
-                                  capture_output=True, text=True)
-            
-            if self.daemon_label in result.stdout:
-                print(f"✓ LaunchDaemon '{self.daemon_label}' is loaded in launchd")
+            # Check Wake Daemon (system-level)
+            if self.config.get('enable_wake', False):
+                print("\nWake Daemon (System):") 
+                result = subprocess.run(['sudo', 'launchctl', 'list'], 
+                                      capture_output=True, text=True)
                 
-                lines = result.stdout.split('\n')
+                wake_daemon_label = f"{self.daemon_label}.Wake"
+                if wake_daemon_label in result.stdout:
+                    print(f"  ✓ LaunchDaemon '{wake_daemon_label}' is loaded")
+                    
+                    lines = result.stdout.split('\n')
+                    for line in lines:
+                        if wake_daemon_label in line:
+                            parts = line.split()
+                            if len(parts) >= 2:
+                                pid = parts[0]
+                                status = parts[1]
+                                if pid != '-':
+                                    print(f"    PID: {pid}")
+                                print(f"    Last exit status: {status}")
+                else:
+                    print(f"  ✗ LaunchDaemon '{wake_daemon_label}' is not loaded")
+            
+            # Check Claude Agent (user-level)
+            print("\nClaude Agent (User):")
+            agent_result = subprocess.run(['launchctl', 'list'],  # No sudo needed
+                                        capture_output=True, text=True)
+            
+            agent_label = f"{self.daemon_label}.Agent"
+            if agent_label in agent_result.stdout:
+                print(f"  ✓ LaunchAgent '{agent_label}' is loaded")
+                
+                lines = agent_result.stdout.split('\n')
                 for line in lines:
-                    if self.daemon_label in line:
+                    if agent_label in line:
                         parts = line.split()
                         if len(parts) >= 2:
                             pid = parts[0]
                             status = parts[1]
                             if pid != '-':
-                                print(f"  PID: {pid}")
-                            print(f"  Last exit status: {status}")
+                                print(f"    PID: {pid}")
+                            print(f"    Last exit status: {status}")
             else:
-                print(f"✗ LaunchDaemon '{self.daemon_label}' is not loaded in launchd")
+                print(f"  ✗ LaunchAgent '{agent_label}' is not loaded")
             
             print("\nWake Schedule:")
             wake_result = subprocess.run(['pmset', '-g', 'sched'], 
@@ -60,9 +86,9 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("=" * 50)
         print("\n=== Testing macOS Scheduler Script ===\n")
         
-        # Check for script in Application Support
+        # Check for agent script in Application Support (user-level script)
         app_support_dir = Path.home() / 'Library' / 'Application Support' / 'ClaudeScheduler'
-        script_path = app_support_dir / 'claude_daemon.sh'
+        script_path = app_support_dir / 'claude_agent.sh'
         
         if not script_path.exists():
             print(f"✗ Script not found at: {script_path}")
@@ -156,11 +182,12 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("=" * 30 + "\n")
         
         log_locations = [
-            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.log',
-            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.out',
-            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.err',
-            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'claude_scheduler.log',
-            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'system.log'
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'claude_scheduler.log',  # Main agent log
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'wake_scheduler.log',    # Wake daemon log
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'agent.out',
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'agent.err',
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'wake_daemon.out',
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'wake_daemon.err'
         ]
         
         found_logs = False

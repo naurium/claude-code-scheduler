@@ -28,11 +28,11 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
         print("Prerequisites check passed!")
         return True
     
-    def generate_macos_plist(self, daemon_label, script_path):
-        """Generate plist XML with dynamic schedule times"""
+    def generate_wake_daemon_plist(self, daemon_label, script_path):
+        """Generate LaunchDaemon plist for wake scheduling only"""
         schedule_entries = []
         
-        # Add schedule entries for command execution times
+        # Add schedule entries for wake refresh times (same as Claude execution times)
         for sched in self.config['schedule']:
             time_parts = sched['time'].split(':')
             hour = int(time_parts[0])
@@ -44,15 +44,13 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             <key>Minute</key>
             <integer>{minute}</integer>
         </dict>""")
-            
-            # Wake schedules are handled by pmset, not in the plist
         
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>{daemon_label}</string>
+    <string>{daemon_label}.Wake</string>
     
     <key>ProgramArguments</key>
     <array>
@@ -69,9 +67,56 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
     </array>
     
     <key>StandardOutPath</key>
-    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.out')}</string>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'wake_daemon.out')}</string>
     <key>StandardErrorPath</key>
-    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.err')}</string>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'wake_daemon.err')}</string>
+</dict>
+</plist>"""
+        
+        return plist_content
+    
+    def generate_agent_plist(self, agent_label, script_path):
+        """Generate LaunchAgent plist for Claude execution"""
+        schedule_entries = []
+        
+        # Add schedule entries for Claude execution times
+        for sched in self.config['schedule']:
+            time_parts = sched['time'].split(':')
+            hour = int(time_parts[0])
+            minute = int(time_parts[1])
+            
+            schedule_entries.append(f"""        <dict>
+            <key>Hour</key>
+            <integer>{hour}</integer>
+            <key>Minute</key>
+            <integer>{minute}</integer>
+        </dict>""")
+        
+        plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>{agent_label}.Agent</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>{script_path}</string>
+    </array>
+    
+    <key>RunAtLoad</key>
+    <false/>
+    
+    <key>StartCalendarInterval</key>
+    <array>
+{chr(10).join(schedule_entries)}
+    </array>
+    
+    <key>StandardOutPath</key>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'agent.out')}</string>
+    <key>StandardErrorPath</key>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'agent.err')}</string>
 </dict>
 </plist>"""
         
@@ -124,6 +169,7 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             'USERNAME': self.username,
             'HOME_DIR': str(self.home_dir),
             'COMMAND': self.config['command'],
+            'WORKING_DIR_VALUE': self.config.get('working_directory', '~'),
             'DAEMON_LABEL': self.daemon_label,
             'LOG_DIR': str(log_dir),
             'SCRIPT_PATH': str(scripts_dir / 'claude_daemon.sh'),
@@ -133,39 +179,76 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             'SCHEDULE_TIMES': schedule_times_str
         }
         
-        # Generate daemon script
+        # Generate wake daemon script (for pmset only)
         self.generate_from_template(
-            platform_dir / 'daemon.sh.template',
-            scripts_dir / 'claude_daemon.sh',
+            platform_dir / 'wake_daemon.sh.template',
+            scripts_dir / 'wake_daemon.sh',
             substitutions
         )
         
-        # Generate plist with dynamic schedule times
-        plist_content = self.generate_macos_plist(
+        # Generate agent script (for Claude execution)
+        self.generate_from_template(
+            platform_dir / 'agent.sh.template',
+            scripts_dir / 'claude_agent.sh',
+            substitutions
+        )
+        
+        # Generate wake daemon plist
+        wake_daemon_plist_content = self.generate_wake_daemon_plist(
             self.daemon_label,
-            str(scripts_dir / 'claude_daemon.sh')
+            str(scripts_dir / 'wake_daemon.sh')
+        )
+        
+        # Generate agent plist
+        agent_plist_content = self.generate_agent_plist(
+            self.daemon_label,
+            str(scripts_dir / 'claude_agent.sh')
         )
         
         if not self.dry_run:
-            plist_path = scripts_dir / f'{self.daemon_label}.plist'
-            with open(plist_path, 'w') as f:
-                f.write(plist_content)
+            # Write wake daemon plist
+            wake_daemon_plist_path = scripts_dir / f'{self.daemon_label}.Wake.plist'
+            with open(wake_daemon_plist_path, 'w') as f:
+                f.write(wake_daemon_plist_content)
+            
+            # Write agent plist
+            agent_plist_path = scripts_dir / f'{self.daemon_label}.Agent.plist'
+            with open(agent_plist_path, 'w') as f:
+                f.write(agent_plist_content)
         else:
             if self.verbose:
-                print(f"Would generate plist at: {scripts_dir / f'{self.daemon_label}.plist'}")
+                print(f"Would generate wake daemon plist at: {scripts_dir / f'{self.daemon_label}.Wake.plist'}")
+                print(f"Would generate agent plist at: {scripts_dir / f'{self.daemon_label}.Agent.plist'}")
         
         if not self.dry_run:
-            print("\nRegistering with launchd (requires sudo)...")
-            plist_path = scripts_dir / f'{self.daemon_label}.plist'
-            system_plist = Path(f'/Library/LaunchDaemons/{self.daemon_label}.plist')
+            print("\nRegistering schedulers...")
             
-            print("• Copying plist to LaunchDaemons...")
-            subprocess.run(['sudo', 'cp', str(plist_path), str(system_plist)], check=True)
-            subprocess.run(['sudo', 'chown', 'root:wheel', str(system_plist)], check=True)
-            subprocess.run(['sudo', 'chmod', '644', str(system_plist)], check=True)
+            # 1. Install Wake Daemon (system-level, requires sudo)
+            if self.config.get('enable_wake', False):
+                print("\n• Installing wake daemon (requires sudo)...")
+                wake_daemon_plist_path = scripts_dir / f'{self.daemon_label}.Wake.plist'
+                system_wake_plist = Path(f'/Library/LaunchDaemons/{self.daemon_label}.Wake.plist')
+                
+                print("  - Copying wake daemon plist to LaunchDaemons...")
+                subprocess.run(['sudo', 'cp', str(wake_daemon_plist_path), str(system_wake_plist)], check=True)
+                subprocess.run(['sudo', 'chown', 'root:wheel', str(system_wake_plist)], check=True)
+                subprocess.run(['sudo', 'chmod', '644', str(system_wake_plist)], check=True)
+                
+                print("  - Loading wake daemon into launchd...")
+                subprocess.run(['sudo', 'launchctl', 'load', str(system_wake_plist)], check=True)
             
-            print("• Loading into launchd...")
-            subprocess.run(['sudo', 'launchctl', 'load', str(system_plist)], check=True)
+            # 2. Install Claude Agent (user-level, no sudo needed)
+            print("\n• Installing Claude agent...")
+            agent_plist_path = scripts_dir / f'{self.daemon_label}.Agent.plist'
+            user_agents_dir = Path.home() / 'Library' / 'LaunchAgents'
+            user_agents_dir.mkdir(parents=True, exist_ok=True)
+            user_agent_plist = user_agents_dir / f'{self.daemon_label}.Agent.plist'
+            
+            print("  - Copying agent plist to LaunchAgents...")
+            shutil.copy(str(agent_plist_path), str(user_agent_plist))
+            
+            print("  - Loading agent into launchd...")
+            subprocess.run(['launchctl', 'load', str(user_agent_plist)], check=True)
             
             if self.config.get('enable_wake', False):
                 print("Setting up wake schedules...")
@@ -219,6 +302,9 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
                     subprocess.run(['sudo', 'pmset', 'schedule', 'wake', wake_cmd], check=True)
                     print(f"  • Set wake for tomorrow at {wake_hour:02d}:{wake_minute:02d}")
             
-            print("macOS scheduler registered successfully!")
+            print("\nmacOS schedulers registered successfully!")
+            if self.config.get('enable_wake', False):
+                print("  ✓ Wake daemon installed (handles system wake scheduling)")
+            print("  ✓ Claude agent installed (executes Claude with user permissions)")
         else:
             print("Dry run - no actual registration performed")

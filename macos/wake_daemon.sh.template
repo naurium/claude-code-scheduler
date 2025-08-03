@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Wake Scheduler Daemon - Runs as root via LaunchDaemon
+# ONLY manages pmset wake schedules, doesn't run Claude
+
+LOG_FILE="${LOG_DIR}/wake_scheduler.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Refreshing wake schedules" >> "$LOG_FILE"
+
+# Only run wake scheduling if enabled
+if [[ "${ENABLE_WAKE}" == "true" ]]; then
+    # Clear existing wake schedules
+    pmset schedule cancelall 2>/dev/null
+    
+    # Get current time
+    CURRENT_HOUR=$(date +%H)
+    CURRENT_MIN=$(date +%M)
+    CURRENT_TIME=$((10#$CURRENT_HOUR * 60 + 10#$CURRENT_MIN))
+    
+    # Define schedule times (in minutes from midnight) with wake offset
+    WAKE_OFFSET=${WAKE_MINUTES}
+    declare -a SCHEDULE_TIMES=(${SCHEDULE_TIMES})
+    
+    # Set wake times for TODAY (remaining sessions)
+    TODAY=$(date '+%m/%d/%y')
+    for SCHED_TIME in ${SCHEDULE_TIMES[@]}; do
+        if [[ $SCHED_TIME -gt $CURRENT_TIME ]]; then
+            WAKE_TIME=$((SCHED_TIME - WAKE_OFFSET))
+            if [[ $WAKE_TIME -lt 0 ]]; then
+                # Handle negative wake time (previous day)
+                WAKE_TIME=$((WAKE_TIME + 1440))  # Add 24 hours in minutes
+            fi
+            HOUR=$((WAKE_TIME / 60))
+            MIN=$((WAKE_TIME % 60))
+            pmset schedule wake "$TODAY $(printf %02d $HOUR):$(printf %02d $MIN):00" 2>/dev/null
+            echo "  Set wake for today at $(printf %02d $HOUR):$(printf %02d $MIN)" >> "$LOG_FILE"
+        fi
+    done
+    
+    # Set wake times for TOMORROW (all sessions)
+    TOMORROW=$(date -v+1d '+%m/%d/%y')
+    for SCHED_TIME in ${SCHEDULE_TIMES[@]}; do
+        WAKE_TIME=$((SCHED_TIME - WAKE_OFFSET))
+        if [[ $WAKE_TIME -lt 0 ]]; then
+            # Handle negative wake time (wraps to previous day, but we're setting for tomorrow)
+            WAKE_TIME=$((WAKE_TIME + 1440))  # Add 24 hours in minutes
+        fi
+        HOUR=$((WAKE_TIME / 60))
+        MIN=$((WAKE_TIME % 60))
+        pmset schedule wake "$TOMORROW $(printf %02d $HOUR):$(printf %02d $MIN):00" 2>/dev/null
+        echo "  Set wake for tomorrow at $(printf %02d $HOUR):$(printf %02d $MIN)" >> "$LOG_FILE"
+    done
+    
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Wake schedules updated successfully" >> "$LOG_FILE"
+else
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Wake scheduling disabled in config" >> "$LOG_FILE"
+fi
+
+echo "---" >> "$LOG_FILE"

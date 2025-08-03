@@ -8,6 +8,23 @@ LOG_FILE="${LOG_DIR}/claude_scheduler.log"
 mkdir -p "$$(dirname "$$LOG_FILE")"
 
 echo "$$(date '+%Y-%m-%d %H:%M:%S') - Starting scheduled task" >> "$$LOG_FILE"
+
+# Set working directory (default to home if not specified or if set to ~)
+WORKING_DIR="${WORKING_DIR_VALUE}"
+if [[ -z "$$WORKING_DIR" ]] || [[ "$$WORKING_DIR" == "~" ]]; then
+    WORKING_DIR="$$HOME"
+else
+    # Expand tilde if present at the start of the path
+    WORKING_DIR="$${WORKING_DIR/#\~/$HOME}"
+fi
+
+echo "$$(date '+%Y-%m-%d %H:%M:%S') - Changing to directory: $$WORKING_DIR" >> "$$LOG_FILE"
+cd "$$WORKING_DIR" || {
+    echo "$$(date '+%Y-%m-%d %H:%M:%S') - ERROR: Cannot change to directory: $$WORKING_DIR" >> "$$LOG_FILE"
+    exit 1
+}
+echo "$$(date '+%Y-%m-%d %H:%M:%S') - Current directory: $$(pwd)" >> "$$LOG_FILE"
+
 echo "$$(date '+%Y-%m-%d %H:%M:%S') - Running command: ${COMMAND}" >> "$$LOG_FILE"
 
 # Extract the actual command (first word, might be full path)

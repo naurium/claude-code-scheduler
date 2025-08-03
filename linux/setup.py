@@ -74,6 +74,7 @@ WantedBy=timers.target"""
             'USERNAME': self.username,
             'HOME_DIR': str(self.home_dir),
             'COMMAND': self.config['command'],
+            'WORKING_DIR_VALUE': self.config.get('working_directory', '~'),
             'SCHEDULES': ' '.join(schedules),
             'SERVICE_NAME': self.service_name,
             'LOG_DIR': str(self.home_dir / 'logs'),

@@ -101,6 +101,7 @@ class WindowsSchedulerSetup(BaseSchedulerSetup):
             'USERNAME': self.username,
             'HOME_DIR': str(self.home_dir),
             'COMMAND': self.command,
+            'WORKING_DIR_VALUE': self.config.get('working_directory', '~'),
             'TASK_NAME': self.task_name,
             'LOG_DIR': str(self.home_dir / 'logs'),
             'SCRIPT_PATH': str(scripts_dir / 'claude_scheduler.ps1'),

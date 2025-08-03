@@ -2,6 +2,7 @@
   "start_time": "06:15",
   "wake_minutes_before": 5,
   "command": "claude -p \"hello\"",
+  "working_directory": "~",
   "enable_wake": true,
   "log_retention_days": 7,
   "platform_settings": {

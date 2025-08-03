@@ -92,7 +92,7 @@ python3 uninstall.py
 
 ## Supported Platforms
 
-✅ **macOS** - LaunchDaemons + automatic wake support  
+✅ **macOS** - Dual LaunchDaemon/Agent architecture + automatic wake support  
 ✅ **Linux** - systemd/cron + manual wake support (rtcwake)  
 ✅ **Windows** - Task Scheduler + wake support (via WSL)
 
