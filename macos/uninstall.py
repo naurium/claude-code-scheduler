@@ -32,18 +32,36 @@ class MacOSSchedulerUninstall(BaseSchedulerUninstall):
             subprocess.run(['sudo', 'pmset', 'schedule', 'cancelall'], 
                           capture_output=True, text=True)
             
+            # Clean up Application Support directory
+            app_support_dir = Path.home() / 'Library' / 'Application Support' / 'com.claude.scheduler'
+            if app_support_dir.exists():
+                print(f"Removing application directory: {app_support_dir}")
+                import shutil
+                shutil.rmtree(app_support_dir)
+            
             if self.remove_logs:
-                log_files = [
+                # Remove new log directory
+                log_dir = Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler'
+                if log_dir.exists():
+                    print(f"Removing log directory: {log_dir}")
+                    import shutil
+                    shutil.rmtree(log_dir)
+                
+                # Also try to remove old log files
+                old_log_files = [
                     self.home_dir / 'logs' / 'claude_scheduler.log',
                     Path('/var/log/claude-scheduler.log'),
                     Path('/var/log/claude-scheduler.out'),
                     Path('/var/log/claude-scheduler.err')
                 ]
-                for log_file in log_files:
+                for log_file in old_log_files:
                     if log_file.exists():
-                        print(f"Removing log file: {log_file}")
-                        subprocess.run(['sudo', 'rm', str(log_file)], 
-                                     capture_output=True, text=True)
+                        print(f"Removing old log file: {log_file}")
+                        try:
+                            subprocess.run(['sudo', 'rm', str(log_file)], 
+                                         capture_output=True, text=True)
+                        except:
+                            pass
             
             print("macOS scheduler uninstalled successfully!")
             return True

@@ -50,4 +50,4 @@ EOF
     fi
 done
 
-echo "$$(date '+%Y-%m-%d %H:%M:%S') - Scheduler checked at $$HOUR:$$MINUTE" >> /var/log/claude-scheduler.log
+echo "$$(date '+%Y-%m-%d %H:%M:%S') - Scheduler checked at $$HOUR:$$MINUTE" >> "${LOG_DIR}/scheduler.log"

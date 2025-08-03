@@ -60,13 +60,19 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("=" * 50)
         print("\n=== Testing macOS Scheduler Script ===\n")
         
-        # Check for script
-        script_path = self.script_dir / 'scripts' / 'claude_daemon.sh'
+        # Check for script in new location
+        app_support_dir = Path.home() / 'Library' / 'Application Support' / 'com.claude.scheduler'
+        script_path = app_support_dir / 'claude_daemon.sh'
         
+        # Fall back to old location if not found
         if not script_path.exists():
-            print(f"✗ Script not found: {script_path}")
-            print("\nSolution: Run 'python3 setup.py' to generate the script")
-            return
+            script_path = self.script_dir / 'scripts' / 'claude_daemon.sh'
+            if not script_path.exists():
+                print(f"✗ Script not found in:")
+                print(f"  - {app_support_dir / 'claude_daemon.sh'}")
+                print(f"  - {self.script_dir / 'scripts' / 'claude_daemon.sh'}")
+                print("\nSolution: Run 'python3 setup.py' to generate the script")
+                return
         
         print(f"✓ Script found: {script_path}")
         
@@ -85,14 +91,13 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         except Exception as e:
             print(f"Error checking permissions: {e}")
         
-        # Check if script is in Documents folder
-        if '/Documents/' in str(script_path):
+        # Check if script is in Application Support (good) or Documents (bad)
+        if '/Application Support/' in str(script_path):
+            print("✓ Script is in Application Support (no security restrictions)")
+        elif '/Documents/' in str(script_path):
             print("\n⚠️  WARNING: Script is in Documents folder")
             print("macOS may block execution from Documents due to security restrictions")
-            print("\nSuggested solutions:")
-            print("1. Move project to ~/Development/ or /opt/")
-            print("2. Grant Terminal full disk access in System Preferences > Security & Privacy")
-            print("3. Use a different location outside of protected folders")
+            print("\nSolution: Run 'python3 setup.py' to install to Application Support")
         
         # Test run the script
         print("\n" + "=" * 30)
@@ -156,6 +161,11 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("=" * 30 + "\n")
         
         log_locations = [
+            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.log',
+            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.out',
+            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.err',
+            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'claude_scheduler.log',
+            # Fall back to old locations
             self.home_dir / 'logs' / 'claude_scheduler.log',
             Path('/var/log/claude-scheduler.log'),
             Path('/var/log/claude-scheduler.out'),

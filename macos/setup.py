@@ -84,9 +84,9 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
     </array>
     
     <key>StandardOutPath</key>
-    <string>/var/log/claude-scheduler.out</string>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.out')}</string>
     <key>StandardErrorPath</key>
-    <string>/var/log/claude-scheduler.err</string>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.err')}</string>
 </dict>
 </plist>"""
         
@@ -95,8 +95,18 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
     def register(self):
         print("\n=== Registering macOS scheduler ===")
         
-        scripts_dir = self.create_scripts_directory()
-        self.create_logs_directory()
+        # Use standard macOS directories
+        app_support_dir = Path.home() / 'Library' / 'Application Support' / 'com.claude.scheduler'
+        log_dir = Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler'
+        
+        # Create directories
+        if not self.dry_run:
+            app_support_dir.mkdir(parents=True, exist_ok=True)
+            log_dir.mkdir(parents=True, exist_ok=True)
+            print(f"Created app directory: {app_support_dir}")
+            print(f"Created log directory: {log_dir}")
+        
+        scripts_dir = app_support_dir
         platform_dir = self.script_dir / 'macos'
         
         schedules = []
@@ -123,7 +133,7 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             'COMMAND': self.config['command'],
             'SCHEDULES': ','.join(schedules),
             'DAEMON_LABEL': self.daemon_label,
-            'LOG_DIR': str(self.home_dir / 'logs'),
+            'LOG_DIR': str(log_dir),
             'SCRIPT_PATH': str(scripts_dir / 'claude_daemon.sh'),
             'NTFY_TOPIC': self.config.get('notification_topic', '')
         }
