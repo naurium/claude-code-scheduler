@@ -13,7 +13,7 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if hasattr(self, 'config') and 'platform_settings' in self.config:
-            self.daemon_label = self.config['platform_settings']['macos'].get('daemon_label', 'com.claude.scheduler')
+            self.daemon_label = self.config['platform_settings']['macos'].get('daemon_label', 'ClaudeScheduler')
     
     def check_status(self):
         print("\n=== macOS Scheduler Status ===")
@@ -61,7 +61,7 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("\n=== Testing macOS Scheduler Script ===\n")
         
         # Check for script in new location
-        app_support_dir = Path.home() / 'Library' / 'Application Support' / 'com.claude.scheduler'
+        app_support_dir = Path.home() / 'Library' / 'Application Support' / 'ClaudeScheduler'
         script_path = app_support_dir / 'claude_daemon.sh'
         
         # Fall back to old location if not found
@@ -161,10 +161,10 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
         print("=" * 30 + "\n")
         
         log_locations = [
-            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.log',
-            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.out',
-            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.err',
-            Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'claude_scheduler.log',
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.log',
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.out',
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.err',
+            Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'claude_scheduler.log',
             # Fall back to old locations
             self.home_dir / 'logs' / 'claude_scheduler.log',
             Path('/var/log/claude-scheduler.log'),

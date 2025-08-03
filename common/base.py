@@ -249,7 +249,7 @@ class BaseSchedulerStatus(ABC):
             'wake_minutes_before': 5,
             'platform_settings': {
                 'macos': {
-                    'daemon_label': 'com.claude.scheduler'
+                    'daemon_label': 'ClaudeScheduler'
                 },
                 'linux': {
                     'service_name': 'claude-scheduler'
@@ -431,7 +431,7 @@ class BaseSchedulerUninstall(ABC):
         return {
             'platform_settings': {
                 'macos': {
-                    'daemon_label': 'com.claude.scheduler'
+                    'daemon_label': 'ClaudeScheduler'
                 },
                 'linux': {
                     'service_name': 'claude-scheduler'

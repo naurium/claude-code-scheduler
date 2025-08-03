@@ -107,8 +107,8 @@ python3 uninstall.py --remove-logs
 - Uses LaunchDaemons for scheduling
 - Supports wake from sleep via `pmset`
 - Requires sudo for registration
-- Logs to `~/Library/Logs/com.claude.scheduler/`
-- Scripts installed to `~/Library/Application Support/com.claude.scheduler/`
+- Logs to `~/Library/Logs/ClaudeScheduler/`
+- Scripts installed to `~/Library/Application Support/ClaudeScheduler/`
 
 ### Linux
 - Uses systemd timers (modern distros) or cron (older systems)
@@ -173,7 +173,7 @@ Use `schedule` array for custom times:
     "wake_method": "rtcwake"  // or "none"
   },
   "macos": {
-    "daemon_label": "com.claude.scheduler",
+    "daemon_label": "ClaudeScheduler",
     "username": "auto"  // or specify username
   }
 }
@@ -267,7 +267,7 @@ The installer requires administrator/sudo privileges. On Unix systems, you'll be
 ### macOS "Operation not permitted" error
 If you see this error when the scheduler tries to run:
 - The script is likely in a protected folder (Documents, Desktop, Downloads)
-- Run `python3 setup.py` to reinstall - scripts will be copied to `~/Library/Application Support/com.claude.scheduler/`
+- Run `python3 setup.py` to reinstall - scripts will be copied to `~/Library/Application Support/ClaudeScheduler/`
 - This location has no security restrictions
 - Use `python3 status.py --test` to verify the fix
 
@@ -303,9 +303,9 @@ Note: rtcwake only sets one wake time. For multiple daily wakes, you'd need to s
 
 **macOS:**
 ```bash
-tail -f ~/Library/Logs/com.claude.scheduler/scheduler.log
+tail -f ~/Library/Logs/ClaudeScheduler/scheduler.log
 # Or check all logs in the directory:
-ls -la ~/Library/Logs/com.claude.scheduler/
+ls -la ~/Library/Logs/ClaudeScheduler/
 ```
 
 **Linux:**
@@ -325,7 +325,7 @@ Test the scheduler script directly:
 **macOS:**
 ```bash
 # If already installed:
-~/Library/Application\ Support/com.claude.scheduler/claude_daemon.sh
+~/Library/Application\ Support/ClaudeScheduler/claude_daemon.sh
 # Or use the test command:
 python3 status.py --test
 ```

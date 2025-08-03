@@ -11,7 +11,7 @@ class MacOSSchedulerUninstall(BaseSchedulerUninstall):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if hasattr(self, 'config') and 'platform_settings' in self.config:
-            self.daemon_label = self.config['platform_settings']['macos'].get('daemon_label', 'com.claude.scheduler')
+            self.daemon_label = self.config['platform_settings']['macos'].get('daemon_label', 'ClaudeScheduler')
     
     def uninstall(self):
         print("\n=== Uninstalling macOS scheduler ===")
@@ -33,7 +33,7 @@ class MacOSSchedulerUninstall(BaseSchedulerUninstall):
                           capture_output=True, text=True)
             
             # Clean up Application Support directory
-            app_support_dir = Path.home() / 'Library' / 'Application Support' / 'com.claude.scheduler'
+            app_support_dir = Path.home() / 'Library' / 'Application Support' / 'ClaudeScheduler'
             if app_support_dir.exists():
                 print(f"Removing application directory: {app_support_dir}")
                 import shutil
@@ -41,7 +41,7 @@ class MacOSSchedulerUninstall(BaseSchedulerUninstall):
             
             if self.remove_logs:
                 # Remove new log directory
-                log_dir = Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler'
+                log_dir = Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler'
                 if log_dir.exists():
                     print(f"Removing log directory: {log_dir}")
                     import shutil

@@ -12,7 +12,7 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if hasattr(self, 'config') and 'platform_settings' in self.config:
-            self.daemon_label = self.config['platform_settings']['macos'].get('daemon_label', 'com.claude.scheduler')
+            self.daemon_label = self.config['platform_settings']['macos'].get('daemon_label', 'ClaudeScheduler')
             self.username = self.config['platform_settings']['macos'].get('username', self.username)
     
     def check_prerequisites(self):
@@ -84,9 +84,9 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
     </array>
     
     <key>StandardOutPath</key>
-    <string>{str(Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.out')}</string>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.out')}</string>
     <key>StandardErrorPath</key>
-    <string>{str(Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler' / 'scheduler.err')}</string>
+    <string>{str(Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler' / 'scheduler.err')}</string>
 </dict>
 </plist>"""
         
@@ -96,8 +96,8 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
         print("\n=== Registering macOS scheduler ===")
         
         # Use standard macOS directories
-        app_support_dir = Path.home() / 'Library' / 'Application Support' / 'com.claude.scheduler'
-        log_dir = Path.home() / 'Library' / 'Logs' / 'com.claude.scheduler'
+        app_support_dir = Path.home() / 'Library' / 'Application Support' / 'ClaudeScheduler'
+        log_dir = Path.home() / 'Library' / 'Logs' / 'ClaudeScheduler'
         
         # Create directories
         if not self.dry_run:
