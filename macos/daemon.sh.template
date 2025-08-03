@@ -18,6 +18,7 @@ for schedule_time in "$${SCHEDULE_ARRAY[@]}"; do
         mkdir -p "$$(dirname "$$LOG_FILE")"
         
         echo "$$(date '+%Y-%m-%d %H:%M:%S') - Starting scheduled task" >> "$$LOG_FILE"
+        echo "$$(date '+%Y-%m-%d %H:%M:%S') - Running command: ${COMMAND}" >> "$$LOG_FILE"
         
         # Extract the actual command (first word, might be full path)
         FULL_COMMAND="${COMMAND}"

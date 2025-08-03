@@ -115,7 +115,7 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             time_parts = sched['time'].split(':')
             hour = int(time_parts[0])
             minute = int(time_parts[1])
-            schedules.append(f"{hour}:{minute:02d}")
+            schedules.append(f"{hour:02d}:{minute:02d}")
             
             if self.config.get('enable_wake', False) and sched.get('wake_minutes_before', 0) > 0:
                 wake_minute = minute - sched['wake_minutes_before']
@@ -125,7 +125,7 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
                     wake_hour -= 1
                     if wake_hour < 0:
                         wake_hour += 24
-                wake_schedules.append(f"{wake_hour}:{wake_minute:02d}")
+                wake_schedules.append(f"{wake_hour:02d}:{wake_minute:02d}")
         
         substitutions = {
             'USERNAME': self.username,
