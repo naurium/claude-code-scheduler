@@ -62,12 +62,11 @@ else
 fi
 
 echo "---" >> "$$LOG_FILE"
-EOF
 
-# Refresh wake schedules after each run (runs with root privileges)
+# Refresh wake schedules after each run (needs root privileges)
 if [[ "${ENABLE_WAKE}" == "true" ]]; then
     # Clear existing wake schedules
-    pmset schedule cancelall 2>/dev/null
+    sudo pmset schedule cancelall 2>/dev/null
     
     # Get current time
     CURRENT_HOUR=$$(date +%H)
@@ -85,7 +84,7 @@ if [[ "${ENABLE_WAKE}" == "true" ]]; then
             WAKE_TIME=$$((SCHED_TIME - WAKE_OFFSET))
             HOUR=$$((WAKE_TIME / 60))
             MIN=$$((WAKE_TIME % 60))
-            pmset schedule wake "$$TODAY $$(printf %02d $$HOUR):$$(printf %02d $$MIN):00" 2>/dev/null
+            sudo pmset schedule wake "$$TODAY $$(printf %02d $$HOUR):$$(printf %02d $$MIN):00" 2>/dev/null
         fi
     done
     
@@ -95,9 +94,10 @@ if [[ "${ENABLE_WAKE}" == "true" ]]; then
         WAKE_TIME=$$((SCHED_TIME - WAKE_OFFSET))
         HOUR=$$((WAKE_TIME / 60))
         MIN=$$((WAKE_TIME % 60))
-        pmset schedule wake "$$TOMORROW $$(printf %02d $$HOUR):$$(printf %02d $$MIN):00" 2>/dev/null
+        sudo pmset schedule wake "$$TOMORROW $$(printf %02d $$HOUR):$$(printf %02d $$MIN):00" 2>/dev/null
     done
     
-    # Log wake schedule update
-    echo "$$(date '+%Y-%m-%d %H:%M:%S') - Wake schedules refreshed" >> "${LOG_DIR}/system.log"
+    # Log wake schedule update (with sudo for root-owned log)
+    echo "$$(date '+%Y-%m-%d %H:%M:%S') - Wake schedules refreshed" | sudo tee -a "${LOG_DIR}/system.log" >/dev/null
 fi
+EOF
