@@ -95,13 +95,20 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
         platform_dir = self.script_dir / 'macos'
         
         wake_schedules = []
+        schedule_times_minutes = []
+        wake_minutes = 5  # Default wake minutes before
+        
         for sched in self.config['schedule']:
             time_parts = sched['time'].split(':')
             hour = int(time_parts[0])
             minute = int(time_parts[1])
             
+            # Calculate minutes from midnight for schedule times
+            schedule_times_minutes.append(str(hour * 60 + minute))
+            
             if self.config.get('enable_wake', False) and sched.get('wake_minutes_before', 0) > 0:
-                wake_minute = minute - sched['wake_minutes_before']
+                wake_minutes = sched.get('wake_minutes_before', 5)
+                wake_minute = minute - wake_minutes
                 wake_hour = hour
                 if wake_minute < 0:
                     wake_minute += 60
@@ -110,6 +117,9 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
                         wake_hour += 24
                 wake_schedules.append(f"{wake_hour:02d}:{wake_minute:02d}")
         
+        # Build schedule times array string for bash
+        schedule_times_str = ' '.join(f'"{t}"' for t in schedule_times_minutes)
+        
         substitutions = {
             'USERNAME': self.username,
             'HOME_DIR': str(self.home_dir),
@@ -117,7 +127,10 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             'DAEMON_LABEL': self.daemon_label,
             'LOG_DIR': str(log_dir),
             'SCRIPT_PATH': str(scripts_dir / 'claude_daemon.sh'),
-            'NTFY_TOPIC': self.config.get('notification_topic', '')
+            'NTFY_TOPIC': self.config.get('notification_topic', ''),
+            'ENABLE_WAKE': 'true' if self.config.get('enable_wake', False) else 'false',
+            'WAKE_MINUTES': str(wake_minutes),
+            'SCHEDULE_TIMES': schedule_times_str
         }
         
         # Generate daemon script
@@ -156,12 +169,55 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
             
             if self.config.get('enable_wake', False):
                 print("Setting up wake schedules...")
-                for wake_time in wake_schedules:
-                    hour, minute = wake_time.split(':')
-                    tomorrow = subprocess.run(['date', '-v+1d', '+%m/%d/%y'], 
-                                            capture_output=True, text=True).stdout.strip()
-                    wake_cmd = f"{tomorrow} {hour}:{minute}:00"
+                # Clear any existing wake schedules
+                subprocess.run(['sudo', 'pmset', 'schedule', 'cancelall'], 
+                             capture_output=True, text=True)
+                
+                # Get current time
+                from datetime import datetime
+                now = datetime.now()
+                current_minutes = now.hour * 60 + now.minute
+                
+                # Set wake times for TODAY (remaining sessions)
+                today = subprocess.run(['date', '+%m/%d/%y'], 
+                                     capture_output=True, text=True).stdout.strip()
+                wake_count = 0
+                
+                for sched in self.config['schedule']:
+                    time_parts = sched['time'].split(':')
+                    hour = int(time_parts[0])
+                    minute = int(time_parts[1])
+                    sched_minutes = hour * 60 + minute
+                    
+                    if sched_minutes > current_minutes:
+                        wake_offset = sched.get('wake_minutes_before', 5)
+                        wake_minute = minute - wake_offset
+                        wake_hour = hour
+                        if wake_minute < 0:
+                            wake_minute += 60
+                            wake_hour -= 1
+                        wake_cmd = f"{today} {wake_hour:02d}:{wake_minute:02d}:00"
+                        subprocess.run(['sudo', 'pmset', 'schedule', 'wake', wake_cmd], check=True)
+                        wake_count += 1
+                        print(f"  • Set wake for today at {wake_hour:02d}:{wake_minute:02d}")
+                
+                # Set wake times for TOMORROW (all sessions)
+                tomorrow = subprocess.run(['date', '-v+1d', '+%m/%d/%y'], 
+                                        capture_output=True, text=True).stdout.strip()
+                
+                for sched in self.config['schedule']:
+                    time_parts = sched['time'].split(':')
+                    hour = int(time_parts[0])
+                    minute = int(time_parts[1])
+                    wake_offset = sched.get('wake_minutes_before', 5)
+                    wake_minute = minute - wake_offset
+                    wake_hour = hour
+                    if wake_minute < 0:
+                        wake_minute += 60
+                        wake_hour -= 1
+                    wake_cmd = f"{tomorrow} {wake_hour:02d}:{wake_minute:02d}:00"
                     subprocess.run(['sudo', 'pmset', 'schedule', 'wake', wake_cmd], check=True)
+                    print(f"  • Set wake for tomorrow at {wake_hour:02d}:{wake_minute:02d}")
             
             print("macOS scheduler registered successfully!")
         else:

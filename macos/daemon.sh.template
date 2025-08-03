@@ -63,3 +63,41 @@ fi
 
 echo "---" >> "$$LOG_FILE"
 EOF
+
+# Refresh wake schedules after each run (runs with root privileges)
+if [[ "${ENABLE_WAKE}" == "true" ]]; then
+    # Clear existing wake schedules
+    pmset schedule cancelall 2>/dev/null
+    
+    # Get current time
+    CURRENT_HOUR=$$(date +%H)
+    CURRENT_MIN=$$(date +%M)
+    CURRENT_TIME=$$((10#$$CURRENT_HOUR * 60 + 10#$$CURRENT_MIN))
+    
+    # Define schedule times (in minutes from midnight) with wake offset
+    WAKE_OFFSET=${WAKE_MINUTES}
+    declare -a SCHEDULE_TIMES=(${SCHEDULE_TIMES})
+    
+    # Set wake times for TODAY (remaining sessions)
+    TODAY=$$(date '+%m/%d/%y')
+    for SCHED_TIME in $${SCHEDULE_TIMES[@]}; do
+        if [[ $$SCHED_TIME -gt $$CURRENT_TIME ]]; then
+            WAKE_TIME=$$((SCHED_TIME - WAKE_OFFSET))
+            HOUR=$$((WAKE_TIME / 60))
+            MIN=$$((WAKE_TIME % 60))
+            pmset schedule wake "$$TODAY $$(printf %02d $$HOUR):$$(printf %02d $$MIN):00" 2>/dev/null
+        fi
+    done
+    
+    # Set wake times for TOMORROW (all 4 sessions)
+    TOMORROW=$$(date -v+1d '+%m/%d/%y')
+    for SCHED_TIME in $${SCHEDULE_TIMES[@]}; do
+        WAKE_TIME=$$((SCHED_TIME - WAKE_OFFSET))
+        HOUR=$$((WAKE_TIME / 60))
+        MIN=$$((WAKE_TIME % 60))
+        pmset schedule wake "$$TOMORROW $$(printf %02d $$HOUR):$$(printf %02d $$MIN):00" 2>/dev/null
+    done
+    
+    # Log wake schedule update
+    echo "$$(date '+%Y-%m-%d %H:%M:%S') - Wake schedules refreshed" >> "${LOG_DIR}/system.log"
+fi
