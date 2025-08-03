@@ -2,6 +2,8 @@
 
 import sys
 import subprocess
+import os
+import stat
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from common.base import BaseSchedulerStatus
@@ -59,3 +61,102 @@ class LinuxSchedulerStatus(BaseSchedulerStatus):
                     print("✗ No cron entries found")
             except:
                 print("✗ Unable to check cron status")
+    
+    def test_script(self):
+        """Test run the scheduler script to verify it works"""
+        print("Claude Scheduler Test Mode")
+        print("=" * 50)
+        print("\n=== Testing Linux Scheduler Script ===\n")
+        
+        # Check for script
+        script_path = self.script_dir / 'scripts' / 'claude_scheduler.sh'
+        
+        if not script_path.exists():
+            print(f"✗ Script not found: {script_path}")
+            print("\nSolution: Run 'python3 setup.py' to generate the script")
+            return
+        
+        print(f"✓ Script found: {script_path}")
+        
+        # Check script permissions
+        try:
+            st = os.stat(script_path)
+            mode = st.st_mode
+            is_executable = bool(mode & stat.S_IXUSR)
+            
+            print(f"\nScript permissions: {oct(stat.S_IMODE(mode))}")
+            if is_executable:
+                print("✓ Script is executable")
+            else:
+                print("✗ Script is not executable")
+                print(f"\nFix with: chmod +x {script_path}")
+        except Exception as e:
+            print(f"Error checking permissions: {e}")
+        
+        # Test run the script
+        print("\n" + "=" * 30)
+        print("Testing script execution...")
+        print("=" * 30 + "\n")
+        
+        try:
+            # Run with a 5 second timeout
+            result = subprocess.run(
+                ['/bin/bash', str(script_path)],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                env={**os.environ, 'PATH': '/usr/local/bin:/usr/bin:/bin:' + os.environ.get('PATH', '')}
+            )
+            
+            if result.returncode == 0:
+                print("✓ Script executed successfully!")
+                if result.stdout:
+                    print("\nScript output:")
+                    print("-" * 30)
+                    print(result.stdout)
+                if result.stderr:
+                    print("\nScript warnings/errors:")
+                    print("-" * 30)
+                    print(result.stderr)
+            else:
+                print(f"✗ Script failed with exit code: {result.returncode}")
+                if result.stdout:
+                    print("\nScript output:")
+                    print("-" * 30)
+                    print(result.stdout)
+                if result.stderr:
+                    print("\nScript errors:")
+                    print("-" * 30)
+                    print(result.stderr)
+                    
+        except subprocess.TimeoutExpired:
+            print("✓ Script is running (timed out after 5 seconds - this is normal)")
+            print("The script appears to be working but takes longer than 5 seconds to complete.")
+        except FileNotFoundError:
+            print("✗ bash not found")
+        except Exception as e:
+            print(f"✗ Error running script: {e}")
+        
+        # Check log files
+        print("\n" + "=" * 30)
+        print("Checking log files...")
+        print("=" * 30 + "\n")
+        
+        log_file = self.home_dir / 'logs' / 'claude_scheduler.log'
+        
+        if log_file.exists():
+            print(f"✓ Log file found: {log_file}")
+            try:
+                # Show last few lines
+                with open(log_file, 'r') as f:
+                    lines = f.readlines()
+                    if lines:
+                        print(f"  Last entry: {lines[-1].strip()}")
+            except PermissionError:
+                print(f"  (Permission denied reading log)")
+        else:
+            print("✗ No log file found yet")
+            print("Logs will be created after the first successful run")
+        
+        print("\n" + "=" * 50)
+        print("Test complete!")

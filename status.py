@@ -30,6 +30,8 @@ def main():
     parser = argparse.ArgumentParser(description='Claude Scheduler Status')
     parser.add_argument('--logs', action='store_true', 
                        help='Show recent log entries')
+    parser.add_argument('--test', action='store_true',
+                       help='Test run the scheduler script to verify it works')
     parser.add_argument('--config', default='config.json', 
                        help='Path to configuration file')
     
@@ -45,7 +47,12 @@ def main():
     )
     
     try:
-        status_checker.run()
+        if args.test:
+            # Run test mode
+            status_checker.test_script()
+        else:
+            # Normal status check
+            status_checker.run()
     except KeyboardInterrupt:
         print("\nStatus check cancelled by user")
         sys.exit(1)

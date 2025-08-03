@@ -6,6 +6,7 @@ import json
 import platform
 import subprocess
 import shutil
+import stat
 from pathlib import Path
 import getpass
 from string import Template
@@ -360,6 +361,11 @@ class BaseSchedulerStatus(ABC):
     @abstractmethod
     def check_status(self):
         """Platform-specific status checking"""
+        pass
+    
+    @abstractmethod
+    def test_script(self):
+        """Test run the scheduler script to verify it works"""
         pass
     
     def run(self):

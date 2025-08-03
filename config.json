@@ -17,5 +17,24 @@
       "daemon_label": "com.claude.scheduler",
       "username": "naurium"
     }
-  }
+  },
+  "schedule": [
+    {
+      "time": "06:15",
+      "wake_minutes_before": 5
+    },
+    {
+      "time": "11:15",
+      "wake_minutes_before": 5
+    },
+    {
+      "time": "16:15",
+      "wake_minutes_before": 5
+    },
+    {
+      "time": "21:15",
+      "wake_minutes_before": 5
+    }
+  ],
+  "notification_topic": "ifPmQP5TNvPO7IHF"
 }
