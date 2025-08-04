@@ -54,6 +54,20 @@ class MacOSSchedulerUninstall(BaseSchedulerUninstall):
                 agent_plist.unlink()
                 print("  ✓ Claude agent removed")
             
+            # 3. Clean up any orphaned agents from testing (even without plist files)
+            print("\nCleaning up any orphaned agents...")
+            known_test_labels = [
+                'ClaudeAgent',  # Legacy test name
+                'ClaudeScheduler',  # Legacy single agent/daemon
+                f'{self.daemon_label}',  # Base name without suffix
+            ]
+            
+            for label in known_test_labels:
+                result = subprocess.run(['launchctl', 'remove', label], 
+                                      capture_output=True, text=True)
+                if result.returncode == 0:
+                    print(f"  ✓ Removed orphaned agent: {label}")
+            
             print("Cancelling wake schedules...")
             subprocess.run(['sudo', 'pmset', 'repeat', 'cancel'], 
                           capture_output=True, text=True)
