@@ -54,7 +54,7 @@ class BaseSchedulerSetup(ABC):
                 print(f"Error: Neither {self.config_path} nor {example_path} found")
                 sys.exit(1)
         
-        with open(self.config_path, 'r') as f:
+        with open(self.config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
         
         # If first time setup and in simple mode, prompt for start time
@@ -78,7 +78,7 @@ class BaseSchedulerSetup(ABC):
                                     print(f"  - {sched['time']}")
                                 print()
                                 # Save the updated config
-                                with open(self.config_path, 'w') as f:
+                                with open(self.config_path, 'w', encoding='utf-8') as f:
                                     json.dump(config, f, indent=2)
                                 print(f"Config saved to {self.config_path}\n")
                                 break
@@ -199,13 +199,13 @@ class BaseSchedulerSetup(ABC):
         if self.verbose:
             print(f"Generating {output_path} from {template_path}")
         
-        with open(template_path, 'r') as f:
+        with open(template_path, 'r', encoding='utf-8') as f:
             template = Template(f.read())
         
         content = template.safe_substitute(substitutions)
         
         if not self.dry_run:
-            with open(output_path, 'w') as f:
+            with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             if self.platform != 'windows':
                 os.chmod(output_path, 0o755)
@@ -213,7 +213,7 @@ class BaseSchedulerSetup(ABC):
     def save_config(self):
         """Save the updated config file with notification settings"""
         if not self.dry_run:
-            with open(self.config_path, 'w') as f:
+            with open(self.config_path, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, indent=2)
             if self.verbose:
                 print(f"Configuration saved to {self.config_path}")
@@ -266,7 +266,7 @@ class BaseSchedulerStatus(ABC):
             self.platform = 'macos'
         
         if self.config_path.exists():
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
                 self.config = json.load(f)
             
             # Detect configuration mode
@@ -343,7 +343,7 @@ class BaseSchedulerStatus(ABC):
         
         if log_file.exists():
             try:
-                with open(log_file, 'r') as f:
+                with open(log_file, 'r', encoding='utf-8') as f:
                     all_lines = f.readlines()
                     recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
                     
@@ -460,7 +460,7 @@ class BaseSchedulerUninstall(ABC):
             self.platform = 'macos'
         
         if self.config_path.exists():
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
                 self.config = json.load(f)
         else:
             print("Warning: config.json not found, using defaults")

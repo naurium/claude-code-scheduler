@@ -100,7 +100,7 @@ WantedBy=timers.target"""
             
             if not self.dry_run:
                 timer_path = scripts_dir / f'{self.service_name}.timer'
-                with open(timer_path, 'w') as f:
+                with open(timer_path, 'w', encoding='utf-8') as f:
                     f.write(timer_content)
             else:
                 if self.verbose:

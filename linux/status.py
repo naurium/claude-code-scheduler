@@ -148,7 +148,7 @@ class LinuxSchedulerStatus(BaseSchedulerStatus):
             print(f"✓ Log file found: {log_file}")
             try:
                 # Show last few lines
-                with open(log_file, 'r') as f:
+                with open(log_file, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
                     if lines:
                         print(f"  Last entry: {lines[-1].strip()}")

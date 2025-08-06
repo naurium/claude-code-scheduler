@@ -208,12 +208,12 @@ class MacOSSchedulerSetup(BaseSchedulerSetup):
         if not self.dry_run:
             # Write wake daemon plist
             wake_daemon_plist_path = scripts_dir / f'{self.daemon_label}.Wake.plist'
-            with open(wake_daemon_plist_path, 'w') as f:
+            with open(wake_daemon_plist_path, 'w', encoding='utf-8') as f:
                 f.write(wake_daemon_plist_content)
             
             # Write agent plist
             agent_plist_path = scripts_dir / f'{self.daemon_label}.Agent.plist'
-            with open(agent_plist_path, 'w') as f:
+            with open(agent_plist_path, 'w', encoding='utf-8') as f:
                 f.write(agent_plist_content)
         else:
             if self.verbose:

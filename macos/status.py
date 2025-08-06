@@ -197,7 +197,7 @@ class MacOSSchedulerStatus(BaseSchedulerStatus):
                 print(f"✓ Log file found: {log_path}")
                 try:
                     # Show last few lines
-                    with open(log_path, 'r') as f:
+                    with open(log_path, 'r', encoding='utf-8') as f:
                         lines = f.readlines()
                         if lines:
                             print(f"  Last entry: {lines[-1].strip()}")
