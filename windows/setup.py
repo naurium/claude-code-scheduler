@@ -97,10 +97,13 @@ class WindowsSchedulerSetup(BaseSchedulerSetup):
         scripts_dir = self.create_scripts_directory()
         platform_dir = self.script_dir / 'windows'
         
+        # Escape single quotes in command for PowerShell
+        escaped_command = self.command.replace("'", "''")
+        
         substitutions = {
             'USERNAME': self.username,
             'HOME_DIR': str(self.home_dir),
-            'COMMAND': self.command,
+            'COMMAND': escaped_command,
             'WORKING_DIR_VALUE': self.config.get('working_directory', '~'),
             'TASK_NAME': self.task_name,
             'LOG_DIR': str(self.home_dir / 'logs'),

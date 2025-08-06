@@ -9,7 +9,7 @@ $$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 Add-Content -Path $$logFile -Value "$$timestamp - Starting scheduled task"
 
 # Run claude through WSL
-$$fullCommand = "${COMMAND}"
+$$fullCommand = '${COMMAND}'
 Add-Content -Path $$logFile -Value "Running command: $$fullCommand"
 
 try {
@@ -59,7 +59,7 @@ fi
             $$time = Get-Date -Format "HH:mm"
             try {
                 Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
-                    -Body "✅ Claude session refreshed at $$time" | Out-Null
+                    -Body "Claude session refreshed at $$time" | Out-Null
             } catch {
                 Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
             }
@@ -74,7 +74,7 @@ fi
             if ($$output -match "Invalid API key") {
                 try {
                     Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
-                        -Body "🔑 Claude API error - please run /login" `
+                        -Body "Claude API error - please run /login" `
                         -Headers @{"Priority"="high"} | Out-Null
                 } catch {
                     Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
@@ -82,7 +82,7 @@ fi
             } else {
                 try {
                     Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
-                        -Body "⚠️ Claude scheduler failed - check logs (exit code: $$LASTEXITCODE)" `
+                        -Body "Claude scheduler failed - check logs (exit code: $$LASTEXITCODE)" `
                         -Headers @{"Priority"="high"} | Out-Null
                 } catch {
                     Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
@@ -100,7 +100,7 @@ fi
     if ($$ntfyTopic) {
         try {
             Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
-                -Body "⚠️ Claude scheduler failed - WSL error" `
+                -Body "Claude scheduler failed - WSL error" `
                 -Headers @{"Priority"="high"} | Out-Null
         } catch {
             Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
