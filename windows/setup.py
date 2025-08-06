@@ -25,7 +25,7 @@ class WindowsSchedulerSetup(BaseSchedulerSetup):
             print("Please install WSL and ensure claude is installed within WSL.")
             print("See: https://docs.microsoft.com/en-us/windows/wsl/install")
             return False
-        print("✓ WSL found")
+        print("+ WSL found")
         print("Note: Claude must be installed and configured inside WSL")
         
         print("Prerequisites check passed!")
@@ -139,7 +139,7 @@ class WindowsSchedulerSetup(BaseSchedulerSetup):
             print("\nRegistering with Windows Task Scheduler...")
             xml_path = scripts_dir / f'{self.task_name}.xml'
             
-            print(f"• Creating scheduled task '{self.task_name}'...")
+            print(f"- Creating scheduled task '{self.task_name}'...")
             subprocess.run(['powershell', '-Command', 
                           f'Register-ScheduledTask -TaskName "{self.task_name}" -Xml (Get-Content "{xml_path}" | Out-String)'],
                           check=True)

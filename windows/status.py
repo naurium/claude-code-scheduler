@@ -24,13 +24,13 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
                                   capture_output=True, text=True)
             
             if result.returncode == 0:
-                print(f"✓ Windows Task Scheduler task '{self.task_name}' is registered")
+                print(f"+ Windows Task Scheduler task '{self.task_name}' is registered")
                 
                 for line in result.stdout.split('\n'):
                     if any(key in line for key in ['Status:', 'Last Run Time:', 'Next Run Time:', 'State:']):
                         print(f"  {line.strip()}")
             else:
-                print(f"✗ Windows Task Scheduler task '{self.task_name}' not found")
+                print(f"X Windows Task Scheduler task '{self.task_name}' not found")
         except Exception as e:
             print(f"Error checking status: {e}")
     
@@ -44,11 +44,11 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
         script_path = self.script_dir / 'scripts' / 'claude_scheduler.ps1'
         
         if not script_path.exists():
-            print(f"✗ Script not found: {script_path}")
+            print(f"X Script not found: {script_path}")
             print("\nSolution: Run 'python3 setup.py' to generate the script")
             return
         
-        print(f"✓ Script found: {script_path}")
+        print(f"+ Script found: {script_path}")
         
         # Check script permissions (less relevant on Windows but still check)
         try:
@@ -65,11 +65,11 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
         # Find WSL path using shutil.which for consistency with setup.py
         wsl_path = shutil.which('wsl')
         if not wsl_path:
-            print("✗ WSL not found in PATH")
+            print("X WSL not found in PATH")
             print("Install WSL with: wsl --install")
             return
         
-        print(f"✓ WSL found at: {wsl_path}")
+        print(f"+ WSL found at: {wsl_path}")
         
         try:
             wsl_check = subprocess.run(
@@ -80,14 +80,14 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
             )
             
             if wsl_check.returncode == 0:
-                print("✓ WSL is working correctly")
+                print("+ WSL is working correctly")
                 print(wsl_check.stdout.strip())
             else:
-                print("✗ WSL found but not working properly")
+                print("X WSL found but not working properly")
                 print("Try reinstalling WSL")
                 return
         except Exception as e:
-            print(f"✗ Error running WSL: {e}")
+            print(f"X Error running WSL: {e}")
             return
         
         # Check claude in WSL
@@ -104,13 +104,13 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
             )
             
             if claude_check.returncode == 0:
-                print("✓ Claude is available in WSL")
+                print("+ Claude is available in WSL")
                 print(f"  Version: {claude_check.stdout.strip()}")
             else:
-                print("✗ Claude not found in WSL")
+                print("X Claude not found in WSL")
                 print("Install Claude inside WSL environment")
         except Exception as e:
-            print(f"✗ Error checking Claude in WSL: {e}")
+            print(f"X Error checking Claude in WSL: {e}")
         
         # Test run the script
         print("\n" + "=" * 30)
@@ -127,7 +127,7 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
             )
             
             if result.returncode == 0:
-                print("✓ Script executed successfully!")
+                print("+ Script executed successfully!")
                 if result.stdout:
                     print("\nScript output:")
                     print("-" * 30)
@@ -137,7 +137,7 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
                     print("-" * 30)
                     print(result.stderr)
             else:
-                print(f"✗ Script failed with exit code: {result.returncode}")
+                print(f"X Script failed with exit code: {result.returncode}")
                 if result.stdout:
                     print("\nScript output:")
                     print("-" * 30)
@@ -148,12 +148,12 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
                     print(result.stderr)
                     
         except subprocess.TimeoutExpired:
-            print("✓ Script is running (timed out after 10 seconds - this is normal)")
+            print("+ Script is running (timed out after 10 seconds - this is normal)")
             print("The script appears to be working but takes longer than 10 seconds to complete.")
         except FileNotFoundError:
-            print("✗ PowerShell not found")
+            print("X PowerShell not found")
         except Exception as e:
-            print(f"✗ Error running script: {e}")
+            print(f"X Error running script: {e}")
         
         # Check log files
         print("\n" + "=" * 30)
@@ -163,7 +163,7 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
         log_file = self.home_dir / 'logs' / 'claude_scheduler.log'
         
         if log_file.exists():
-            print(f"✓ Log file found: {log_file}")
+            print(f"+ Log file found: {log_file}")
             try:
                 # Show last few lines
                 with open(log_file, 'r', encoding='utf-8') as f:
@@ -173,7 +173,7 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
             except PermissionError:
                 print(f"  (Permission denied reading log)")
         else:
-            print("✗ No log file found yet")
+            print("X No log file found yet")
             print("Logs will be created after the first successful run")
         
         print("\n" + "=" * 50)

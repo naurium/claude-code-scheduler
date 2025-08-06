@@ -362,24 +362,26 @@ class BaseSchedulerStatus(ABC):
             wsl_path = shutil.which('wsl')
             
             if not wsl_path:
-                print(f"✗ WSL not found")
+                print("X WSL not found")
                 print(f"  Please install WSL and claude within it")
                 return
             
-            # WSL is available, now check for claude inside WSL
+            # WSL is available, now check for claude inside WSL with proper PATH
             try:
-                result = subprocess.run([wsl_path, 'claude', '--version'], 
+                # Use the same PATH setup as the PowerShell script
+                wsl_command = "source ~/.bashrc 2>/dev/null; source ~/.nvm/nvm.sh 2>/dev/null; export PATH='$HOME/.nvm/versions/node/v20.19.3/bin:$HOME/.local/bin:$HOME/.npm-global/bin:/usr/local/bin:/usr/bin:/bin'; claude --version"
+                result = subprocess.run([wsl_path, 'bash', '-c', wsl_command], 
                                       capture_output=True, text=True)
                 
                 if result.returncode == 0:
-                    print(f"✓ Claude CLI is available through WSL")
+                    print("+ Claude CLI is available through WSL")
                     if result.stdout:
                         print(f"  Version: {result.stdout.strip()}")
                 else:
-                    print(f"✗ Claude CLI not found in WSL")
+                    print("X Claude CLI not found in WSL")
                     print(f"  Please ensure claude is installed inside WSL")
             except Exception as e:
-                print(f"✗ Error checking claude in WSL: {e}")
+                print(f"X Error checking claude in WSL: {e}")
                 print(f"  Please ensure claude is installed inside WSL")
         else:
             # macOS and Linux
@@ -388,13 +390,13 @@ class BaseSchedulerStatus(ABC):
                                       capture_output=True, text=True)
                 
                 if result.returncode == 0:
-                    print(f"✓ Claude CLI is available")
+                    print("+ Claude CLI is available")
                     if result.stdout:
                         print(f"  Version: {result.stdout.strip()}")
                 else:
-                    print(f"✗ Claude CLI returned error")
+                    print("X Claude CLI returned error")
             except FileNotFoundError:
-                print(f"✗ Claude CLI not found in PATH")
+                print("X Claude CLI not found in PATH")
                 print(f"  Please ensure 'claude' is installed and in your PATH")
     
     @abstractmethod
@@ -431,7 +433,7 @@ class BaseSchedulerStatus(ABC):
         print("\nScheduled times:")
         for sched in self.config['schedule']:
             wake_mins = sched.get('wake_minutes_before', self.config.get('wake_minutes_before', 5))
-            print(f"  • {sched['time']} (wake {wake_mins} min before)")
+            print(f"  - {sched['time']} (wake {wake_mins} min before)")
         
         next_run = self.get_next_run_time()
         print(f"\nNext scheduled run: {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
