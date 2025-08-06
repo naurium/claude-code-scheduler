@@ -5,53 +5,43 @@ if (!(Test-Path $$logDir)) {
     New-Item -ItemType Directory -Path $$logDir -Force | Out-Null
 }
 
-$$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-Add-Content -Path $$logFile -Value "$$timestamp - Starting scheduled task"
-
 # Run claude through WSL
 $$fullCommand = '${COMMAND}'
-Add-Content -Path $$logFile -Value "Running command: $$fullCommand"
+
+$$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+Add-Content -Path $$logFile -Value "$$timestamp - Starting scheduled task"
+Add-Content -Path $$logFile -Value "$$timestamp - Running command: $$fullCommand"
 
 try {
-    # Extract command for better error reporting
-    $$cmdParts = $$fullCommand -split ' ', 2
-    $$cmdToCheck = $$cmdParts[0]
+    # Set working directory
+    $$workingDir = '${WORKING_DIR_VALUE}'
+    if ($$workingDir -eq '~' -or $$workingDir -eq '') {
+        $$workingDir = '$$HOME'
+    }
     
-    # Run through WSL with expanded PATH and command checking
-    $$bashScript = @"
-export PATH='~/.local/bin:~/.npm-global/bin:~/.yarn/bin:/usr/local/bin:/usr/bin:/bin:$$PATH'
-
-# Set working directory (default to home if not specified or if set to ~)
-WORKING_DIR='${WORKING_DIR_VALUE}'
-if [[ -z \`$$WORKING_DIR ]] || [[ \`$$WORKING_DIR == "~" ]]; then
-    WORKING_DIR=\`$$HOME
-else
-    # Expand tilde if present at the start of the path
-    WORKING_DIR="\`$${WORKING_DIR/#\~/$HOME}"
-fi
-
-echo "Changing to directory: \`$$WORKING_DIR"
-cd \`$$WORKING_DIR || {
-    echo "ERROR: Cannot change to directory: \`$$WORKING_DIR"
-    exit 1
-}
-echo "Current directory: \`$$(pwd)"
-
-CMD_TO_CHECK='$$cmdToCheck'
-if command -v \`$$CMD_TO_CHECK &> /dev/null || [[ -x \`$$CMD_TO_CHECK ]]; then
-    ${COMMAND}
-else
-    echo "ERROR: Command not found or not executable: \`$$CMD_TO_CHECK"
-    echo "Full command was: ${COMMAND}"
-    exit 1
-fi
-"@
+    # Build single-line command for WSL to avoid all CRLF issues
+    # Include NVM path for claude and source bashrc for full environment
+    # Use single quotes for PATH to prevent bash from interpreting Windows paths with special chars
+    $$wslCommand = "source ~/.bashrc 2>/dev/null; source ~/.nvm/nvm.sh 2>/dev/null; export PATH='`$$HOME/.nvm/versions/node/v20.19.3/bin:`$$HOME/.local/bin:`$$HOME/.npm-global/bin:/usr/local/bin:/usr/bin:/bin'; cd $$workingDir && $$fullCommand"
     
-    $$output = wsl bash -c $$bashScript 2>&1
-    Add-Content -Path $$logFile -Value $$output
+    # Execute as single-line command - proven to work in tests
+    # CRITICAL: Quote the command to pass it as a single argument to bash
+    $$output = wsl bash -c "$$wslCommand" 2>&1
+    $$exitCode = $$LASTEXITCODE
     
-    if ($$LASTEXITCODE -eq 0) {
-        Add-Content -Path $$logFile -Value "$$timestamp - Task completed successfully"
+    # Log the command output directly (macOS style)
+    if ($$output) {
+        # Handle both string and array output
+        if ($$output -is [array]) {
+            $$output | ForEach-Object { Add-Content -Path $$logFile -Value $$_ }
+        } else {
+            Add-Content -Path $$logFile -Value $$output
+        }
+    }
+    
+    if ($$exitCode -eq 0) {
+        $$endTimestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        Add-Content -Path $$logFile -Value "$$endTimestamp - Task completed successfully"
         
         # Send success notification if configured
         $$ntfyTopic = "${NTFY_TOPIC}"
@@ -60,12 +50,14 @@ fi
             try {
                 Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
                     -Body "Claude session refreshed at $$time" | Out-Null
+                Add-Content -Path $$logFile -Value "Success notification sent to ntfy.sh/$$ntfyTopic"
             } catch {
                 Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
             }
         }
     } else {
-        Add-Content -Path $$logFile -Value "$$timestamp - Task failed with exit code $$LASTEXITCODE"
+        $$endTimestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        Add-Content -Path $$logFile -Value "$$endTimestamp - Task failed with exit code $$exitCode"
         
         # Send error notification if configured
         $$ntfyTopic = "${NTFY_TOPIC}"
@@ -79,10 +71,18 @@ fi
                 } catch {
                     Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
                 }
+            } elseif ($$output -match "command not found") {
+                try {
+                    Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
+                        -Body "Claude not found - check PATH in WSL" `
+                        -Headers @{"Priority"="high"} | Out-Null
+                } catch {
+                    Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
+                }
             } else {
                 try {
                     Invoke-RestMethod -Uri "https://ntfy.sh/$$ntfyTopic" -Method Post `
-                        -Body "Claude scheduler failed - check logs (exit code: $$LASTEXITCODE)" `
+                        -Body "Claude scheduler failed - check logs (exit code: $$exitCode)" `
                         -Headers @{"Priority"="high"} | Out-Null
                 } catch {
                     Add-Content -Path $$logFile -Value "Failed to send notification: $$_"
@@ -91,8 +91,8 @@ fi
         }
     }
 } catch {
-    Add-Content -Path $$logFile -Value "$$timestamp - ERROR: Failed to run claude through WSL"
-    Add-Content -Path $$logFile -Value "$$timestamp - Make sure WSL is installed and claude is configured in WSL"
+    $$errorTimestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $$logFile -Value "$$errorTimestamp - ERROR: Failed to run claude through WSL"
     Add-Content -Path $$logFile -Value "Error details: $$_"
     
     # Send error notification if configured
