@@ -4,6 +4,7 @@ import sys
 import subprocess
 import os
 import stat
+import shutil
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from common.base import BaseSchedulerStatus
@@ -61,27 +62,32 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
         print("Checking WSL...")
         print("=" * 30 + "\n")
         
+        # Find WSL path using shutil.which for consistency with setup.py
+        wsl_path = shutil.which('wsl')
+        if not wsl_path:
+            print("✗ WSL not found in PATH")
+            print("Install WSL with: wsl --install")
+            return
+        
+        print(f"✓ WSL found at: {wsl_path}")
+        
         try:
             wsl_check = subprocess.run(
-                ['wsl', '--version'],
+                [wsl_path, '--version'],
                 capture_output=True,
                 text=True,
                 timeout=5
             )
             
             if wsl_check.returncode == 0:
-                print("✓ WSL is installed")
+                print("✓ WSL is working correctly")
                 print(wsl_check.stdout.strip())
             else:
-                print("✗ WSL not found or not configured")
-                print("Install WSL with: wsl --install")
+                print("✗ WSL found but not working properly")
+                print("Try reinstalling WSL")
                 return
-        except FileNotFoundError:
-            print("✗ WSL not found")
-            print("Install WSL with: wsl --install")
-            return
         except Exception as e:
-            print(f"✗ Error checking WSL: {e}")
+            print(f"✗ Error running WSL: {e}")
             return
         
         # Check claude in WSL
@@ -91,7 +97,7 @@ class WindowsSchedulerStatus(BaseSchedulerStatus):
         
         try:
             claude_check = subprocess.run(
-                ['wsl', 'claude', '--version'],
+                [wsl_path, 'claude', '--version'],
                 capture_output=True,
                 text=True,
                 timeout=5

@@ -359,16 +359,16 @@ class BaseSchedulerStatus(ABC):
         
         if self.platform == 'windows':
             # Windows requires WSL - check for WSL first
-            wsl_available = shutil.which('wsl')
+            wsl_path = shutil.which('wsl')
             
-            if not wsl_available:
+            if not wsl_path:
                 print(f"✗ WSL not found")
                 print(f"  Please install WSL and claude within it")
                 return
             
             # WSL is available, now check for claude inside WSL
             try:
-                result = subprocess.run(['wsl', 'claude', '--version'], 
+                result = subprocess.run([wsl_path, 'claude', '--version'], 
                                       capture_output=True, text=True)
                 
                 if result.returncode == 0:
